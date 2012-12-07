@@ -274,7 +274,7 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
     MPI_Ssend(storage, number, MPI_DOUBLE, 0, 327, MPI_COMM_WORLD);
 
     #ifdef test
-    fprintf( stderr, "slave %d  -->  slice %d is calculated & sent\n", my_rank, slice );
+    fprintf( stderr, "slave %d  -->  slice %d is calculated & sent\n", rank, slice );
     #endif
   }
 }
