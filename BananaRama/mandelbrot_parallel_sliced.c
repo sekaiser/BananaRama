@@ -74,6 +74,7 @@ void setGrid(double *crMin, double *crMax, double *ciMin,
   *dcr = (*crMax - *crMin)/(NX - 1);
   *dci = (*ciMax - *ciMin)/(NY - 1);
 }
+
 /* Setup the slices through which compute the Mandelbrot set  */
 int setSlices(int *iarrBegin, int *iarrEnd, int *iarrOffset) {
   int slice, avg_width_slice, leftover, temp, tempOffset;
@@ -86,10 +87,12 @@ int setSlices(int *iarrBegin, int *iarrEnd, int *iarrOffset) {
   for (slice = 0; slice < N_SLICES; slice++) {
     iarrBegin[slice] = temp + 1;
     iarrEnd[slice] = iarrBegin[slice] + avg_width_slice - 1;
+
     if (leftover>0) {
       iarrEnd[slice]++;
       leftover--;
     }
+    
     temp = iarrEnd[slice];
     iarrOffset[slice] = tempOffset;
     tempOffset = tempOffset + NX * (iarrEnd[slice] - iarrBegin[slice] + 1);
@@ -99,9 +102,10 @@ int setSlices(int *iarrBegin, int *iarrEnd, int *iarrOffset) {
 }
 
 /* Master node -- control the calculation */
-void master(int numProcs, int *iarrBegin, int *iarrEnd, 
+void master(int mpiSize, int *iarrBegin, int *iarrEnd, 
             int average, double crMin, double ciMin, double dcr, 
             double dci, double *storage, int *offset ) {
+
   int    k, k_slice, slice, process;
   int    number, source;
   int i, j;
@@ -117,7 +121,7 @@ void master(int numProcs, int *iarrBegin, int *iarrEnd,
   slice = 0;
   
   /* send a slice to each slave */
-  for (process = 1; process < numProcs; process++) { 
+  for (process = 1; process < mpiSize; process++) { 
     printf("1st loop start\n");
     /* generate Mandelbrot set in each process */
     MPI_Ssend(&slice, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
@@ -153,7 +157,7 @@ void master(int numProcs, int *iarrBegin, int *iarrEnd,
     } else {
       kill = -1;
       
-      for (process = 1; process < numProcs; process++) {
+      for (process = 1; process < mpiSize; process++) {
 	printf("sending kill to WORLD\n");
         MPI_Ssend(&kill, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
       }
@@ -166,7 +170,7 @@ void master(int numProcs, int *iarrBegin, int *iarrEnd,
       FILE* file = fopen ("test.tga", "wb");
 
       if(file==NULL) {
-        printf("error: can not write to file");
+        printf("ERROR: can not write to file");
       } else {
 
         for (i = 0; i < NX; i++) {
@@ -212,13 +216,12 @@ double iterate(double cReal, double cImg, int *count) {
   double zReal, zImg, zCurrentReal, zMagnitude;
   double color;
   int    counter;
-  int inset;
+  int inSet;
   
   /* z = 0 */
   zReal = 0.0;
   zImg  = 0.0;
   counter = 0;
-  inset = 1;
   while (counter < MAX_ITERATIONS) {
     zCurrentReal = zReal;
     zReal = zReal*zReal - zImg * zImg + cReal;
@@ -227,20 +230,9 @@ double iterate(double cReal, double cImg, int *count) {
     zMagnitude = zReal * zReal + zImg * zImg;
 
     if (zMagnitude > THRESHOLD_RADIUS) {
-      inset = 0;
-      color = counter;
-      *count = MAX_ITERATIONS;
+      break;
     }
   }
-
-   if (inset)
-   {
-     color = 0;
-   }
-   else
-   { 
-     color = color / MAX_ITERATIONS * 255;
-   }    
   
   //#ifdef test
   //if (zMagnitude < THRESHOLD_RADIUS) { 
@@ -248,6 +240,8 @@ double iterate(double cReal, double cImg, int *count) {
   //}
   //#endif
   count++;
+
+  color = (double)(255*counter) / (double)MAX_ITERATIONS;
 
   return color;
 }
@@ -274,16 +268,15 @@ void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
 void slave(int rank, int *iarrBegin, int *iarrEnd,
            int average, double crMin, double ciMin, double dcr, 
            double dci, double *storage) {
+  
   static int count;
   int        number, slice;
   MPI_Status status;
 
-  printf("creating slave node\n");
-
   for (;;) {
     /* a new slice to calculate */
     MPI_Recv(&slice, 1, MPI_INT,0, 325, MPI_COMM_WORLD, &status);
-    printf("slave %d will process slice: %d\n",rank, slice);
+    printf("Slave %d will process slice: %d\n.",rank, slice);
     /* suicide signal */
     if (slice < 0) {
       printf("Process %d exiting work loop.\n", rank);
@@ -304,27 +297,28 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
 int main(int argc, char *argv[]) {
   double crMin, crMax, ciMin, ciMax; 
   double dcr, dci;
-  int    width_avg_slice;
+  int    widthAvgSlice;
   int    iarrBeginSlice[1000], iarrEndSlice[1000], offset[1000];
-  int    rank, numProcs;
+  int    rank, mpiSize;
   double *storage;
    
   MPI_Init(&argc, &argv);
-  MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
+  MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  
   width_avg_slice = setSlices(iarrBeginSlice, iarrEndSlice, offset);
   setGrid(&crMin, &crMax, &ciMin, &ciMax, &dcr, &dci);
  
   /* memory allocation for color storage */
-  storage = (double *)malloc(NX * (width_avg_slice + 1) * sizeof(double));
+  storage = (double *)malloc(NX * (widthAvgSlice + 1) * sizeof(double));
   /* master node */
   if (rank == 0) {
-    master(numProcs, iarrBeginSlice, iarrEndSlice, width_avg_slice,
+    master(mpiSize, iarrBeginSlice, iarrEndSlice, widthAvgSlice,
            crMin, ciMin, dcr, dci, storage, offset);
   }
   /* slave nodes  */
   else {
-    slave(rank, iarrBeginSlice, iarrEndSlice, width_avg_slice,
+    slave(rank, iarrBeginSlice, iarrEndSlice, widthAvgSlice,
           crMin, ciMin, dcr, dci, storage);
   }
   

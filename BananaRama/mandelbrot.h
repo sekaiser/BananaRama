@@ -38,22 +38,22 @@
 ////////////////////////////////////////////////////////////////////////
 
 // if |z| goes beyond the threshold, point C is not in the set        //
-#define THRESHOLD_RADIUS 2.0
+#define THRESHOLD_RADIUS 4.0
 
 // Maximum number of iterations before declaring a point in the       //
 // Mandelbrot set                                                     //
 #define MAX_ITERATIONS 120
 
 // image size. default is 700x500 pixels
-#define NX 700
-#define NY 500
+#define NX 640
+#define NY 400
 
 // number of slices that are going to be distributed among the slave  //
 // processes.                                                         //
 #define N_SLICES 64
 
 // Maximum nuber of processes                                         //
-#define MAX_PROCESSES 1000
+#define MAX_PROCESSES 4
 
 
 
