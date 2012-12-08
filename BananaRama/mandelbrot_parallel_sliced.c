@@ -78,8 +78,8 @@ void setGrid(double *crMin, double *crMax, double *ciMin,
 /* Setup the slices through which compute the Mandelbrot set  */
 int setSlices(int *iarrBegin, int *iarrEnd, int *iarrOffset) {
   int slice, avg_width_slice, leftover, temp, tempOffset;
-  avg_width_slice = NX / N_SLICES;
-  leftover = NX % N_SLICES;
+  avg_width_slice = NY / N_SLICES;
+  leftover = NY % N_SLICES;
   temp = -1;
   tempOffset = 0;
   
@@ -239,7 +239,7 @@ double iterate(double cReal, double cImg, int *count) {
   //  printf (" %f %f  \n ", cReal, cImg );
   //}
   //#endif
-  count++;
+  *count++;
 
   color = (double)(255*counter) / (double)MAX_ITERATIONS;
 
@@ -306,7 +306,7 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   
-  width_avg_slice = setSlices(iarrBeginSlice, iarrEndSlice, offset);
+  widthAvgSlice = setSlices(iarrBeginSlice, iarrEndSlice, offset);
   setGrid(&crMin, &crMax, &ciMin, &ciMax, &dcr, &dci);
  
   /* memory allocation for color storage */
