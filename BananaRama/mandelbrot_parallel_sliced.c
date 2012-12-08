@@ -229,17 +229,17 @@ double iterate(double cReal, double cImg, int *count) {
     if (zMagnitude > THRESHOLD_RADIUS) {
       inset = 0;
       color = counter;
-      count = MAX_ITERATIONS;
+      *count = MAX_ITERATIONS;
     }
   }
 
    if (inset)
    {
-     colour = 0;
+     color = 0;
    }
    else
    { 
-     color = colour / MAX_ITERATIONS * 255;
+     color = color / MAX_ITERATIONS * 255;
    }    
   
   //#ifdef test
@@ -300,6 +300,7 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
     //#endif
   }
 }
+
 int main(int argc, char *argv[]) {
   double crMin, crMax, ciMin, ciMax; 
   double dcr, dci;
