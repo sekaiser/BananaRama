@@ -102,12 +102,18 @@ void master(int numProcs, int *iarrBegin, int *iarrEnd,
             double dci, double *storage, int *offset ) {
   int    k, k_slice, slice, process;
   int    number, source;
+  int i, j;
   static int slices[MAX_PROCESSES];
   int    kill, recv_slice;
   double mandelbrot[NX * NY];
+  double rgb[NX][NY][3];
   MPI_Status status;
+  char buffer[100];
+
+  
   /* scan over slices */
   slice = 0;
+  
   /* send a slice to each slave */
   for (process = 1; process < numProcs; process++) { 
     printf("1st loop start\n");
@@ -117,71 +123,85 @@ void master(int numProcs, int *iarrBegin, int *iarrEnd,
     slice++;
     printf("1st loop end\n");
   }
+  
   /* scan over received slices */
   for (k_slice = 0; k_slice < N_SLICES; k_slice++) {
     printf("2nd loop start on round %d\n", k_slice);
+
     /* receive a slice */
     number = NX * (average + 1);
     printf("2nd loop recv\n"); 
 
     MPI_Recv(storage, number, MPI_DOUBLE, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
+
     /* source of slice */
     source = status.MPI_SOURCE;
+
     /* received slice */ 
     recv_slice = slices[source];
     
     printf("2nd loop recieved slice %d\n",recv_slice);
 
     /* send a slice to this slave */
-    if (slice < N_SLICES) { 
-      
+    if (slice < N_SLICES) {   
       printf("2nd loop sending new slice %d\n", slice);
       MPI_Ssend(&slice, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
       slices[source] = slice;
       slice++;
     } else {
       kill = -1;
+      
       for (process = 1; process < numProcs; process++) {
 	printf("sending kill to WORLD\n");
         MPI_Ssend(&kill, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
       }
       
-	fprintf(stderr, " The Mandelbrot Set will be written out \n");
-  	for (k = 0; k < NX * NY; k++) {
-  		printf(" %f \n", mandelbrot[k]);
-  	}
+      fprintf(stderr, " The Mandelbrot Set will be written out \n");
+      for (k = 0; k < NX * NY; k++) {
+        printf(" %f \n", mandelbrot[k]);
+      }
+      
+      FILE* file = fopen ("test.tga", "wb");
 
-	FILE* file = fopen ("test.tga", "wb");
+      if(file==NULL) {
+        printf("error: can not write to file");
+      } else {
 
-	if(file==NULL) {
-		printf("error: can not write to file");
-	} else {
-		char buffer[100];
-		buffer[0] = 0;
-      		buffer[1] = 0;
-      		buffer[2] = 2;
-      		buffer[8] = 0; buffer[9] = 0;
-      		buffer[10] = 0; buffer[11] = 0;
-      		buffer[12] = (NX & 0x00FF); buffer[13] = (NX & 0xFF00) >> 8;
-      		buffer[14] = (NY & 0x00FF); buffer[15] = (NY & 0xFF00) >> 8;
-      		buffer[16] = 24;
-      		buffer[17] = 0;
-		fwrite(buffer,18,1,file);
-		fwrite(mandelbrot,NX*NY,1,file);
-		fclose(file);	
-	}
+        for (i = 0; i < NX; i++) {
+          for (j = 0; j < NY; j++) {
+            rgb[i][j][0] = mandelbrot[i*j];
+            rgb[i][j][0] = mandelbrot[i*j] / 2;
+            rgb[i][j][0] = mandelbrot[i*j] / 2;
+          }
+        }
+        
+        buffer[0] = 0;
+        buffer[1] = 0;
+        buffer[2] = 2;
+        buffer[8] = 0; buffer[9] = 0;
+        buffer[10] = 0; buffer[11] = 0;
+        buffer[12] = (NX & 0x00FF); buffer[13] = (NX & 0xFF00) >> 8;
+        buffer[14] = (NY & 0x00FF); buffer[15] = (NY & 0xFF00) >> 8;
+        buffer[16] = 24;
+        buffer[17] = 0;
+        fwrite(buffer,18,1,file);
+        fwrite(rgb,NX*NY*3,1,file);
+        fclose(file);	
+      }
+        
       free(storage);
       MPI_Finalize();
       exit(0);
-
     }
     
     /* actual number */
     number = NX * (iarrEnd[recv_slice] - iarrBegin[recv_slice] + 1);
+
     /* store set in matrix */
     for (k=0 ; k < number; k++ ) {
       mandelbrot[offset[recv_slice] + k] = storage[k];
     }
+    
     printf("2nd loop end\n");
   }
 }
