@@ -102,11 +102,13 @@ void master(int numProcs, int *iarrBegin, int *iarrEnd,
             int average, double crMin, double ciMin, double dcr, 
             double dci, double *storage, int *offset ) {
 
+  int    fd;
   int    k, k_slice, slice, process;
   int    number, source;
   static int slices[MAX_PROCESSES];
   int    kill, recv_slice;
   double mandelbrot[NX * NY];
+  char   buffer[100];
   MPI_Status status;
 
   /* scan over slices */
