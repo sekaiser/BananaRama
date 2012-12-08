@@ -44,7 +44,7 @@
 // Mandelbrot set                                                     //
 #define MAX_ITERATIONS 120
 
-// image size. default is 700x500 pixels
+// image size. default is 700x500 pixels                              //
 #define NX 640
 #define NY 400
 

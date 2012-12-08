@@ -216,7 +216,6 @@ double iterate(double cReal, double cImg, int *count) {
   double zReal, zImg, zCurrentReal, zMagnitude;
   double color;
   int    counter;
-  int inSet;
   
   /* z = 0 */
   zReal = 0.0;
