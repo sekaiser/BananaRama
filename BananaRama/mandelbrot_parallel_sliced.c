@@ -1,10 +1,9 @@
-#include <fcntl.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
+#include <fcntl.h>
 #include "mandelbrot.h"
-
 ////////////////////////////////////////////////////////////////////////
 //                                                                    //
 // The Mandelbrot Set                                                 //
@@ -101,88 +100,89 @@ int setSlices(int *iarrBegin, int *iarrEnd, int *iarrOffset) {
 void master(int numProcs, int *iarrBegin, int *iarrEnd, 
             int average, double crMin, double ciMin, double dcr, 
             double dci, double *storage, int *offset ) {
-
-  int    fd;
   int    k, k_slice, slice, process;
   int    number, source;
   static int slices[MAX_PROCESSES];
   int    kill, recv_slice;
   double mandelbrot[NX * NY];
-  char   buffer[100];
   MPI_Status status;
-
   /* scan over slices */
   slice = 0;
-
   /* send a slice to each slave */
   for (process = 1; process < numProcs; process++) { 
+    printf("1st loop start\n");
     /* generate Mandelbrot set in each process */
     MPI_Ssend(&slice, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
     slices[process] = slice;
     slice++;
+    printf("1st loop end\n");
   }
-
   /* scan over received slices */
   for (k_slice = 0; k_slice < N_SLICES; k_slice++) {
-
+    printf("2nd loop start on round %d\n", k_slice);
     /* receive a slice */
     number = NX * (average + 1);
+    printf("2nd loop recv\n"); 
 
     MPI_Recv(storage, number, MPI_DOUBLE, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
-
     /* source of slice */
     source = status.MPI_SOURCE;
-
     /* received slice */ 
     recv_slice = slices[source];
+    
+    printf("2nd loop recieved slice %d\n",recv_slice);
 
     /* send a slice to this slave */
-    if (slice < N_SLICES) {   
+    if (slice < N_SLICES) { 
+      
+      printf("2nd loop sending new slice %d\n", slice);
       MPI_Ssend(&slice, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
       slices[source] = slice;
       slice++;
     } else {
       kill = -1;
       for (process = 1; process < numProcs; process++) {
+	printf("sending kill to WORLD\n");
         MPI_Ssend(&kill, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
       }
       
-      for (k = 0; k < NX * NY; k++) {
-        printf(" %f \n", mandelbrot[k]);
-      }
+	fprintf(stderr, " The Mandelbrot Set will be written out \n");
+  	for (k = 0; k < NX * NY; k++) {
+  		printf(" %f \n", mandelbrot[k]);
+  	}
 
-      /* writes the data to a TGA file */
-      if ((fd = open("mand.tga", O_RDWR+O_CREAT, 0)) == -1)
-      {
-        printf("error opening file\n");
-        exit(1);
-      }
-    
-      buffer[0] = 0;
-      buffer[1] = 0;
-      buffer[2] = 2;
-      buffer[8] = 0; buffer[9] = 0;
-      buffer[10] = 0; buffer[11] = 0;
-      buffer[12] = (NX & 0x00FF); buffer[13] = (NX & 0xFF00) >> 8;
-      buffer[14] = (NY & 0x00FF); buffer[15] = (NY & 0xFF00) >> 8;
-      buffer[16] = 24;
-      buffer[17] = 0;
-      write(fd, buffer, 18);
-      write(fd, mandelbrot, NX*NY);
-      close(fd);
+	FILE* file = fopen ("test.tga", "wb");
 
+	if(file==NULL) {
+		printf("error: can not write to file");
+	} else {
+		char buffer[100];
+		buffer[0] = 0;
+      		buffer[1] = 0;
+      		buffer[2] = 2;
+      		buffer[8] = 0; buffer[9] = 0;
+      		buffer[10] = 0; buffer[11] = 0;
+      		buffer[12] = (NX & 0x00FF); buffer[13] = (NX & 0xFF00) >> 8;
+      		buffer[14] = (NY & 0x00FF); buffer[15] = (NY & 0xFF00) >> 8;
+      		buffer[16] = 24;
+      		buffer[17] = 0;
+		fwrite(buffer,18,1,file);
+		fwrite(mandelbrot,NX*NY,1,file);
+		fclose(file);	
+	}
       free(storage);
       MPI_Finalize();
       exit(0);
+
     }
     
     /* actual number */
     number = NX * (iarrEnd[recv_slice] - iarrBegin[recv_slice] + 1);
-
     /* store set in matrix */
     for (k=0 ; k < number; k++ ) {
       mandelbrot[offset[recv_slice] + k] = storage[k];
     }
+    printf("2nd loop end\n");
   }
 }
                                             
@@ -190,12 +190,10 @@ double iterate(double cReal, double cImg, int *count) {
   double zReal, zImg, zCurrentReal, zMagnitude;
   double color;
   int    counter;
-  
   /* z = 0 */
   zReal = 0.0;
   zImg  = 0.0;
   counter = 0;
-  
   while (counter < MAX_ITERATIONS) {
     zCurrentReal = zReal;
     zReal = zReal*zReal - zImg * zImg + cReal;
@@ -206,7 +204,6 @@ double iterate(double cReal, double cImg, int *count) {
       break;
     }
   }
-  
   //#ifdef test
   //if (zMagnitude < THRESHOLD_RADIUS) { 
   //  printf (" %f %f  \n ", cReal, cImg );
@@ -214,10 +211,8 @@ double iterate(double cReal, double cImg, int *count) {
   //#endif
   count++;
   color = (double)(255*counter) / (double)MAX_ITERATIONS;
-
   return color;
 }
-
 /* Calculate the Mandelbrot set in slice  */
 void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
                      int *count, double crMin, double ciMin,
@@ -235,7 +230,6 @@ void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
     }
   }
 }
-
 void slave(int rank, int *iarrBegin, int *iarrEnd,
            int average, double crMin, double ciMin, double dcr, 
            double dci, double *storage) {
@@ -249,22 +243,17 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
     /* a new slice to calculate */
     MPI_Recv(&slice, 1, MPI_INT,0, 325, MPI_COMM_WORLD, &status);
     printf("slave %d will process slice: %d\n",rank, slice);
-
     /* suicide signal */
     if (slice < 0) {
       printf("Process %d exiting work loop.\n", rank);
       MPI_Finalize();
       exit(0);
     }
-
     /* calculate requested slice */
     computeSlice(slice, iarrBegin, iarrEnd, &count, crMin, ciMin, dcr, dci, storage);
-
     /* send results back to master */
     number = NX * (average + 1);
-
     MPI_Ssend(storage, number, MPI_DOUBLE, 0, 327, MPI_COMM_WORLD);
-
     //#ifdef test
     //fprintf( stderr, "slave %d  -->  slice %d is calculated & sent\n", rank, slice );
     //#endif
@@ -286,7 +275,6 @@ int main(int argc, char *argv[]) {
  
   /* memory allocation for color storage */
   storage = (double *)malloc(NX * (width_avg_slice + 1) * sizeof(double));
-
   /* master node */
   if (rank == 0) {
     master(numProcs, iarrBeginSlice, iarrEndSlice, width_avg_slice,
