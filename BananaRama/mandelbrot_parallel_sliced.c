@@ -94,8 +94,10 @@ int setSlices(int *iarrBegin, int *iarrEnd, int *iarrOffset) {
     iarrOffset[slice] = tempOffset;
     tempOffset = tempOffset + NX * (iarrEnd[slice] - iarrBegin[slice] + 1);
   }
+  
   return avg_width_slice;
 }
+
 /* Master node -- control the calculation */
 void master(int numProcs, int *iarrBegin, int *iarrEnd, 
             int average, double crMin, double ciMin, double dcr, 
@@ -169,9 +171,9 @@ void master(int numProcs, int *iarrBegin, int *iarrEnd,
 
         for (i = 0; i < NX; i++) {
           for (j = 0; j < NY; j++) {
-            rgb[i][j][0] = mandelbrot[i*j];
-            rgb[i][j][0] = mandelbrot[i*j] / 2;
-            rgb[i][j][0] = mandelbrot[i*j] / 2;
+            rgb[i][j][0] = mandelbrot[i * j];
+            rgb[i][j][1] = mandelbrot[i * j] / 2;
+            rgb[i][j][2] = mandelbrot[i * j] / 2;
           }
         }
         
@@ -210,29 +212,46 @@ double iterate(double cReal, double cImg, int *count) {
   double zReal, zImg, zCurrentReal, zMagnitude;
   double color;
   int    counter;
+  int inset;
+  
   /* z = 0 */
   zReal = 0.0;
   zImg  = 0.0;
   counter = 0;
+  inset = 1;
   while (counter < MAX_ITERATIONS) {
     zCurrentReal = zReal;
     zReal = zReal*zReal - zImg * zImg + cReal;
     zImg  = 2.0 * zCurrentReal * zImg + cImg;
     counter++;
     zMagnitude = zReal * zReal + zImg * zImg;
+
     if (zMagnitude > THRESHOLD_RADIUS) {
-      break;
+      inset = 0;
+      color = counter;
+      count = MAX_ITERATIONS;
     }
   }
+
+   if (inset)
+   {
+     colour = 0;
+   }
+   else
+   { 
+     color = colour / MAX_ITERATIONS * 255;
+   }    
+  
   //#ifdef test
   //if (zMagnitude < THRESHOLD_RADIUS) { 
   //  printf (" %f %f  \n ", cReal, cImg );
   //}
   //#endif
   count++;
-  color = (double)(255*counter) / (double)MAX_ITERATIONS;
+
   return color;
 }
+
 /* Calculate the Mandelbrot set in slice  */
 void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
                      int *count, double crMin, double ciMin,
@@ -245,11 +264,13 @@ void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
     for (i = 0; i < NX; i++) {
        cReal = crMin + i * dcr;
        cImg = ciMin + j * dci;
+
        /* Store resulting color value */
        storage[k++] = iterate(cReal, cImg, count);
     }
   }
 }
+
 void slave(int rank, int *iarrBegin, int *iarrEnd,
            int average, double crMin, double ciMin, double dcr, 
            double dci, double *storage) {
