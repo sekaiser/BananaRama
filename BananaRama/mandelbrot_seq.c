@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_ITERATIONS 60
-#define NX 600                 
-#define NY 500
+#define MAX_ITERATIONS 100
+#define NX 320                 
+#define NY 320
 
 
 struct BMPHeader
@@ -44,9 +44,9 @@ int assemble_work(char *work_result)
     for (count = 0; count < NX * NY; count++)
     {
         char color = work_result[count] == 0 ? 0 : 255;
-        bitmap[count * 3] = color;
-        bitmap[count * 3 + 1] = color;
-        bitmap[count * 3 + 2] = color;
+        bitmap[count * 3] = (color / 65536) % 256;
+        bitmap[count * 3 + 1] = (color / 256) % 256;
+        bitmap[count * 3 + 2] = (color % 256);
     }
     
     printf("hier\n");
@@ -155,10 +155,10 @@ int main(int argc, char **argv)
     int count;
     char *rgb = malloc(3*NX*NY*sizeof(char));
 
-    crmin=-1.7;
-    crmax = 0.8;
-    cimin = -1.0;
-    cimax = 1.0;
+    crmin=-1.2548;
+    crmax = -1.2544;
+    cimin = 0.3816;
+    cimax = 0.3822;
 
     dcr = (crmax - crmin)/(NX-1);
     dci = (cimax - cimin)/(NY-1);
@@ -192,7 +192,8 @@ int main(int argc, char **argv)
             z_magnitude = z_real*z_real+z_img*z_img;
             if ( z_magnitude > 4 ) 
   		{
-				rgb[i*j] = counter;
+				//rgb[i*j] = counter;
+				rgb[i*j] = (int)((double)(255*counter)/(double)MAX_ITERATIONS);
 				break;
 			}
 				count++;
