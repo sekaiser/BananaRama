@@ -116,14 +116,14 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
   MPI_Status status;
   char buffer[100];
 
-  printf("Number of slices to process: %d\n", N_SLICES);
+  printf("Number of slices to process: %d.\n", N_SLICES);
   /* scan over slices */
   slice = 0;
   
   /* send a slice to each slave */
   for (process = 1; process < mpiSize; process++) { 
     /* generate Mandelbrot set in each process */
-    printf("Send task 'Generate Mandelbrot Set' to slave (pid: %d)\n",rank);
+    printf("Send task 'Generate Mandelbrot Set' to slave (pid: %d).\n",process);
     MPI_Ssend(&slice, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
     slices[process] = slice;
     slice++;
@@ -142,10 +142,10 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
     /* received slice */ 
     recv_slice = slices[source];
 
-    printf("Received slice '%d' from slave '%d'.\n", number, source);
+    printf("Received slice '%d' from slave '%d'.\n", k_slice, source);
     /* send a slice to this slave */
     if (slice < N_SLICES) {
-      printf("Send slice '%d' to slave '%d'", number, source);
+      printf("Send slice '%d' to slave '%d'", k_slice, source);
       MPI_Ssend(&slice, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
       slices[source] = slice;
       slice++;
@@ -153,11 +153,14 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
       kill = -1;
       
       for (process = 1; process < mpiSize; process++) {
-        printf("Master sends 'terminate' to slave '%d' \n", process);
+        printf("Master sends 'terminate' to slave '%d'.\n", process);
         MPI_Ssend(&kill, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
       }
-      
-      fprintf(stderr, " The Mandelbrot Set will be written out \n");
+        
+      free(storage);
+      MPI_Finalize();
+
+      fprintf(stderr, " The Mandelbrot Set will be written out.\n");
       for (k = 0; k < NX * NY; k++) {
         printf(" %f \n", mandelbrot[k]);
       }
@@ -165,7 +168,7 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
       FILE* file = fopen ("test.tga", "wb");
 
       if(file==NULL) {
-        printf("ERROR: can not write to file");
+        printf("ERROR: can not write to file!");
       } else {
 
         for (i = 0; i < NX; i++) {
@@ -189,9 +192,7 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
         fwrite(rgb,NX*NY*3,1,file);
         fclose(file);	
       }
-        
-      free(storage);
-      MPI_Finalize();
+      
       exit(0);
     }
     
@@ -268,11 +269,11 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
   for (;;) {
     /* a new slice to calculate */
     MPI_Recv(&slice, 1, MPI_INT,0, 325, MPI_COMM_WORLD, &status);
-    printf("Slave %d will process slice: %d\n.",rank, slice);
+    printf("Slave '%d' will process slice: %d.\n", rank, slice);
 
     /* suicide signal */
     if (slice < 0) {
-      printf("Process %d exiting work loop.\n", rank);
+      printf("Slave '%d' exiting work loop.\n", rank);
       MPI_Finalize();
       exit(0);
     }
@@ -282,7 +283,7 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
 
     /* send results back to master */
     number = NX * (average + 1);
-    printf("Slave '%d' sends result back to master.\n", number);
+    printf("Slave '%d' sends result ('%d') back to master.\n", rank, number);
     MPI_Ssend(storage, number, MPI_DOUBLE, 0, 327, MPI_COMM_WORLD);
 
     //#ifdef test
