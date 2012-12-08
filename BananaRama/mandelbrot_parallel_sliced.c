@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,30 +110,52 @@ void master(int numProcs, int *iarrBegin, int *iarrEnd,
   slice = 0;
   /* send a slice to each slave */
   for (process = 1; process < numProcs; process++) { 
+    printf("1st loop start\n");
     /* generate Mandelbrot set in each process */
-    printf("MASTER: MPI_Ssend from Master to WORLD sent\n");
     MPI_Ssend(&slice, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
-    printf("MASTER: MPI_Ssend from Master to WORLD completed\n");
     slices[process] = slice;
     slice++;
+    printf("1st loop end\n");
   }
   /* scan over received slices */
   for (k_slice = 0; k_slice < N_SLICES; k_slice++) {
+    printf("2nd loop start on round %d\n", k_slice);
     /* receive a slice */
     number = NX * (average + 1);
-    printf("MASTER: MPI_Recv from ANY_SOURCE to MASTER sent\n");
-    MPI_Recv(storage, number, MPI_DOUBLE, MPI_ANY_SOURCE, 327,
-             MPI_COMM_WORLD, &status);
-    printf("MASTER: MPI_Recv from ANY_SOURCE to MASTER completed\n");
+    printf("2nd loop recv\n"); 
+
+    MPI_Recv(storage, number, MPI_DOUBLE, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
     /* source of slice */
     source = status.MPI_SOURCE;
     /* received slice */ 
     recv_slice = slices[source];
+    
+    printf("2nd loop recieved slice %d\n",recv_slice);
+
     /* send a slice to this slave */
-    if (slice < N_SLICES) {      
+    if (slice < N_SLICES) { 
+      
+      printf("2nd loop sending new slice %d\n", slice);
       MPI_Ssend(&slice, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
       slices[source] = slice;
       slice++;
+    } else {
+      kill = -1;
+      for (process = 1; process < numProcs; process++) {
+	printf("sending kill to WORLD\n");
+        MPI_Ssend(&kill, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
+      }
+      
+	fprintf(stderr, " The Mandelbrot Set will be written out \n");
+  	for (k = 0; k < NX * NY; k++) {
+  		printf(" %f \n", mandelbrot[k]);
+  	}
+
+
+      free(storage);
+      MPI_Finalize();
+      exit(0);
+
     }
     
     /* actual number */
@@ -141,30 +164,8 @@ void master(int numProcs, int *iarrBegin, int *iarrEnd,
     for (k=0 ; k < number; k++ ) {
       mandelbrot[offset[recv_slice] + k] = storage[k];
     }
-    printf("N_SLICES: %d\n",N_SLICES);
-    printf("k_slice: %d\n",k_slice);
-  }   
-  printf("kkkkk %f \n", mandelbrot[0]);
-  
-  //#ifdef test
-  //fprintf(stderr, " The Mandelbrot Set will be written out \n");
-  //for (k = 0; k < NX * NY; k++) {
-  //  printf(" %f \n", mandelbrot[k]);
-  //}
-  //
-  //fprintf(stderr, " The Mandelbrot Set has been written out \n");
-  //#endif
-  /* Calculation is done! End all slave processes */
-  kill = -1;
-  for (process = 1; process < numProcs; process++)
-  { 
-    
-    MPI_Send(&kill, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
+    printf("2nd loop end\n");
   }
-  
-  free(storage);
-  MPI_Finalize();
-  //exit(0);
 }
                                             
 double iterate(double cReal, double cImg, int *count) {
@@ -217,17 +218,18 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
   static int count;
   int        number, slice;
   MPI_Status status;
+
+  printf("creating slave node\n");
+
   for (;;) {
     /* a new slice to calculate */
     MPI_Recv(&slice, 1, MPI_INT,0, 325, MPI_COMM_WORLD, &status);
-    printf("slice: %d\n",slice);
+    printf("slave %d will process slice: %d\n",rank, slice);
     /* suicide signal */
     if (slice < 0) {
-      //free(storage);
-      //MPI_Finalize();
-      //exit(0);
       printf("Process %d exiting work loop.\n", rank);
-      break;
+      MPI_Finalize();
+      exit(0);
     }
     /* calculate requested slice */
     computeSlice(slice, iarrBegin, iarrEnd, &count, crMin, ciMin, dcr, dci, storage);
@@ -253,8 +255,6 @@ int main(int argc, char *argv[]) {
   width_avg_slice = setSlices(iarrBeginSlice, iarrEndSlice, offset);
   setGrid(&crMin, &crMax, &ciMin, &ciMax, &dcr, &dci);
  
-  fprintf(stderr, "Average of a single slice: %d", width_avg_slice);
-  
   /* memory allocation for color storage */
   storage = (double *)malloc(NX * (width_avg_slice + 1) * sizeof(double));
   /* master node */
