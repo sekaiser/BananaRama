@@ -116,28 +116,24 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
   MPI_Status status;
   char buffer[100];
 
-  
+  printf("Number of slices to process: %d\n", N_SLICES);
   /* scan over slices */
   slice = 0;
   
   /* send a slice to each slave */
   for (process = 1; process < mpiSize; process++) { 
-    printf("1st loop start\n");
     /* generate Mandelbrot set in each process */
+    printf("Send task 'Generate Mandelbrot Set' to slave (pid: %d)\n",rank);
     MPI_Ssend(&slice, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
     slices[process] = slice;
     slice++;
-    printf("1st loop end\n");
   }
   
   /* scan over received slices */
   for (k_slice = 0; k_slice < N_SLICES; k_slice++) {
-    printf("2nd loop start on round %d\n", k_slice);
-
     /* receive a slice */
     number = NX * (average + 1);
-    printf("2nd loop recv\n"); 
-
+    
     MPI_Recv(storage, number, MPI_DOUBLE, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
 
     /* source of slice */
@@ -145,12 +141,11 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
 
     /* received slice */ 
     recv_slice = slices[source];
-    
-    printf("2nd loop recieved slice %d\n",recv_slice);
 
+    printf("Received slice '%d' from slave '%d'.\n", number, source);
     /* send a slice to this slave */
-    if (slice < N_SLICES) {   
-      printf("2nd loop sending new slice %d\n", slice);
+    if (slice < N_SLICES) {
+      printf("Send slice '%d' to slave '%d'", number, source);
       MPI_Ssend(&slice, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
       slices[source] = slice;
       slice++;
@@ -158,7 +153,7 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
       kill = -1;
       
       for (process = 1; process < mpiSize; process++) {
-	printf("sending kill to WORLD\n");
+        printf("Master sends 'terminate' to slave '%d' \n", process);
         MPI_Ssend(&kill, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
       }
       
@@ -207,8 +202,6 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
     for (k=0 ; k < number; k++ ) {
       mandelbrot[offset[recv_slice] + k] = storage[k];
     }
-    
-    printf("2nd loop end\n");
   }
 }
                                             
@@ -276,17 +269,22 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
     /* a new slice to calculate */
     MPI_Recv(&slice, 1, MPI_INT,0, 325, MPI_COMM_WORLD, &status);
     printf("Slave %d will process slice: %d\n.",rank, slice);
+
     /* suicide signal */
     if (slice < 0) {
       printf("Process %d exiting work loop.\n", rank);
       MPI_Finalize();
       exit(0);
     }
+
     /* calculate requested slice */
     computeSlice(slice, iarrBegin, iarrEnd, &count, crMin, ciMin, dcr, dci, storage);
+
     /* send results back to master */
     number = NX * (average + 1);
+    printf("Slave '%d' sends result back to master.\n", number);
     MPI_Ssend(storage, number, MPI_DOUBLE, 0, 327, MPI_COMM_WORLD);
+
     //#ifdef test
     //fprintf( stderr, "slave %d  -->  slice %d is calculated & sent\n", rank, slice );
     //#endif
@@ -310,13 +308,16 @@ int main(int argc, char *argv[]) {
  
   /* memory allocation for color storage */
   storage = (double *)malloc(NX * (widthAvgSlice + 1) * sizeof(double));
+
   /* master node */
   if (rank == 0) {
+    printf("Initialize master (pid: %d)\n",rank); 
     master(mpiSize, iarrBeginSlice, iarrEndSlice, widthAvgSlice,
            crMin, ciMin, dcr, dci, storage, offset);
   }
   /* slave nodes  */
   else {
+    printf("Initialize slave (pid: %d)\n",rank);
     slave(rank, iarrBeginSlice, iarrEndSlice, widthAvgSlice,
           crMin, ciMin, dcr, dci, storage);
   }
