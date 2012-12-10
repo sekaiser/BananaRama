@@ -110,7 +110,8 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
   	int    number, source;
   	int i, j;
 	static int slices[MAX_PROCESSES];
-  	int    kill, recv_slice;
+  	//int    kill, 
+	int recv_slice;
   	double mandelbrot[NX * NY];
   	double rgb[NX][NY][3];
   	MPI_Status status;
@@ -124,6 +125,7 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
 
  	/* send a slice to each slave */
   	for (process = 1; process < mpiSize; process++) { 
+
     		/* generate Mandelbrot set in each process */
     		printf("Send task 'Generate Mandelbrot Set' to slave (pid: %d).\n",process);
     		MPI_Ssend(&slice, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
@@ -135,6 +137,7 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
 
 	/* scan over received slices */
 	for (k_slice = 0; k_slice < N_SLICES; k_slice++) {
+
 		/* receive a slice */
 		number = NX * (average + 1);
     
@@ -166,16 +169,9 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
       
 	// post processing steps
 
-	// killing the slaves
-	kill = -1;
-	for (process = 1; process < mpiSize; process++) {
-        	printf("Master sends '%d' to slave '%d'.\n", kill, process);
-        	MPI_Ssend(&kill, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
-	}
-       
-	// freeing the storage 
+	closeMPI(mpiSize);
+       	// freeing the storage 
 	free(storage);
-	MPI_Finalize();
 
 	fprintf(stderr, " The Mandelbrot Set will be written out.\n");
 	for (k = 0; k < NX * NY; k++) {
@@ -209,9 +205,21 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
         	fwrite(rgb,NX*NY*3,1,file);
         	fclose(file);	
       }
+
       // finally exit the program
       exit(0);
  }
+
+void closeMPI(int mpiSize) {
+	int kill, process;
+	kill = -1;
+        // killing the slaves
+        for (process = 1; process < mpiSize; process++) {
+              printf("Master sends '%d' to slave '%d'.\n", kill, process);
+              MPI_Ssend(&kill, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
+        }
+        MPI_Finalize();
+}
                                             
 double iterate(double cReal, double cImg, int *count) {
   double zReal, zImg, zCurrentReal, zMagnitude;
@@ -234,11 +242,6 @@ double iterate(double cReal, double cImg, int *count) {
     }
   }
   
-  //#ifdef test
-  //if (zMagnitude < THRESHOLD_RADIUS) { 
-  //  printf (" %f %f  \n ", cReal, cImg );
-  //}
-  //#endif
   *count++;
 
   color = (double)(255*counter) / (double)MAX_ITERATIONS;
@@ -293,9 +296,6 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
     printf("Slave '%d' sends result for slice '%d' back to master.\n", rank, slice);
     MPI_Ssend(storage, number, MPI_DOUBLE, 0, 327, MPI_COMM_WORLD);
 
-    //#ifdef test
-    //fprintf( stderr, "slave %d  -->  slice %d is calculated & sent\n", rank, slice );
-    //#endif
   }
 }
 
