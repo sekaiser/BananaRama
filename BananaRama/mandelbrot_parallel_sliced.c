@@ -205,12 +205,11 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
         	fwrite(rgb,NX*NY*3,1,file);
         	fclose(file);	
       }
-
       // finally exit the program
       exit(0);
- }
+}
 
-void closeMPI(int mpiSize) {
+inline void closeMPI(int mpiSize) {
 	int kill, process;
 	kill = -1;
         // killing the slaves

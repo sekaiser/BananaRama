@@ -103,7 +103,7 @@ int setSlices(int *iarrBegin, int *iarrEnd, int *iarrOffset);
    @param dci
    @param storage   Allocated memory for a slice.
 */
-void master(int mpiSize, int *iarrBegin, int *iarrEnd,
+void master(int numProcs, int *iarrBegin, int *iarrEnd,
             int average, double crMin, double ciMin,
             double dcr, double dci, double *storage,
             int *offset);
@@ -157,4 +157,9 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
            int average, double crMin, double ciMin,
            double dcr, double dci, double *storage);
 
+/**
+   Kill the slave processes.
+   @param mpiSize
+ */
+inline void closeMPI(int mpiSize);
 #endif  // MANDELBROT_H_
