@@ -50,10 +50,6 @@
  *
  */
 
-/* Constants */
-/* #define debug */
-
-
 /* Function implementations*/
 
 /* 
@@ -100,8 +96,7 @@ int setSlices(int *iarrBegin, int *iarrEnd, int *iarrOffset) {
 
 /* Master node -- control the calculation */
 void master(int mpiSize, int *iarrBegin, int *iarrEnd, 
-            int average, double crMin, double ciMin, double dcr, 
-            double dci, double *storage, int *offset ) {
+            int average, double *storage, int *offset ) {
 
   	int    k, slice, process;
   	int    number, source;
@@ -273,10 +268,14 @@ void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
   }
 }
 
+#ifdef debug
 void slave(int rank, int *iarrBegin, int *iarrEnd,
-           int average, double crMin, double ciMin, double dcr, 
-           double dci, double *storage) {
-  
+           int average, double crMin, double ciMin, double dcr,
+	              double dci, double *storage) {
+
+#else
+void slave(int *iarrBegin, int *iarrEnd, int average, double crMin, double ciMin, double dcr, double dci, double* storage) {
+#endif
   int        number, slice;
   MPI_Status status;
 
@@ -333,16 +332,17 @@ int main(int argc, char *argv[]) {
     		printf("Initialize master (pid: %d)\n",rank); 
 	#endif
     master(mpiSize, iarrBeginSlice, iarrEndSlice, widthAvgSlice,
-           crMin, ciMin, dcr, dci, storage, offset);
+           storage, offset);
   }
   /* slave nodes  */
   else {
 	#ifdef debug
     		printf("Initialize slave (pid: %d)\n",rank);
+		slave(rank, iarrBeginSlice, iarrEndSlice, widthAvgSlice, crMin, ciMin, dcr, dci, storage);
+	#else
+		slave(iarrBeginSlice, iarrEndSlice, widthAvgSlice, crMin, ciMin, dcr, dci, storage);
 	#endif
-    slave(rank, iarrBeginSlice, iarrEndSlice, widthAvgSlice,
-          crMin, ciMin, dcr, dci, storage);
-  }
+  }	
   
   return 0;
 }

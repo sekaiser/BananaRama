@@ -54,7 +54,7 @@
 /* Maximum nuber of processes */
 #define MAX_PROCESSES 4
 
-
+/* #define debug */
 
 /*
  * Functions
@@ -152,9 +152,12 @@ void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
    param dci
    param storage
  */
-void slave(int rank, int *iarrBegin, int *iarrEnd,
-           int average, double crMin, double ciMin,
-           double dcr, double dci, double *storage);
+#ifdef debug
+void slave(int rank, int *iarrBegin, int *iarrEnd, int average, double crMin, double ciMin,
+           	   double dcr, double dci, double *storage);
+#else
+void slave(int *iarrBegin, int *iarrEnd, int average, double crMin, double ciMin, double dcr, double dci, double* storage);
+#endif
 
 /**
    Kill the slave processes.
