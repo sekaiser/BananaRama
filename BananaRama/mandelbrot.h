@@ -1,65 +1,64 @@
-////////////////////////////////////////////////////////////////////////
-//                                                                    //
-// mandelbrot.h                                                       //
-//                                                                    //
-// Disclaimer:                                                        //
-// This implementation of Mandelbrot is inspired by an excellent      //
-// tutorial given by Michel Valleries, Professor for Physics at Drexel//
-// University. You can find his tutorial here:                        //
-// http://www.physics.drexel.edu/~valliere/PHYS405/Content.html       //
-//                                                                    //
-//                                                                    //
-// Inspired by Prof. Velleries we programmed a parallel version       //
-// Mandelbrot. Therefore, we used the Master-Slave model. In order  //
-// to compute the area, the master process divides  the computation   //
-// area into slices. These slices will be distributed among the       //
-// available slaves, who perform the compuation. Afterwards the slaves//
-// send the results back to the master process, who is will compute   //
-// the received data in order to generate a picture.                  //
-// The user interaction is realized by implementing a small dialog.   //
-// Furthermore we tried to implement a solution, that is as fast as   //
-// possible.                                                          //
-//                                                                    //
-//                                                                    //
-//                                                                    //
-//  author Sebastian Kaiser (743121)                                 //
-//  author Eric Kuhnt                                                //
-//  author Robert                                                    //
-//                                                                    //
-//  version 1.0  12/06/12                                            //
-//                                                                    //
-////////////////////////////////////////////////////////////////////////
+/*
+ *
+ * mandelbrot.h                                                       
+ *                                                                   
+ * Disclaimer:                                                     
+ * This implementation of Mandelbrot is inspired by an excellent      
+ * tutorial given by Michel Valleries, Professor for Physics at Drexel
+ * University. You can find his tutorial here:                        
+ * http://www.physics.drexel.edu/~valliere/PHYS405/Content.html      
+ *                                                                   
+ *                                                                   
+ * Inspired by Prof. Velleries we programmed a parallel version     
+ * Mandelbrot. Therefore, we used the Master-Slave model. In order 
+ * to compute the area, the master process divides  the computation 
+ * area into slices. These slices will be distributed among the     
+ * available slaves, who perform the compuation. Afterwards the slaves
+ * send the results back to the master process, who is will compute  
+ * the received data in order to generate a picture.                  
+ * The user interaction is realized by implementing a small dialog.  
+ * Furthermore we tried to implement a solution, that is as fast as  
+ * possible.                                                         
+ *                                                                   
+ *                                                                                                                                     
+ *  author Sebastian Kaiser (743121)                                
+ *  author Eric Kuhnt                                               
+ *  author Robert                                                   
+ *                                                                  
+ *  version 1.0  12/06/12                                           
+ *                                                                   
+ */
 
-#ifndef MANDELBROT_H_
-#define MANDELBROT_H_
+#ifndef MANDELBROT__H
+#define MANDELBROT__H
 
-////////////////////////////////////////////////////////////////////////
-// Constants                                                          //
-////////////////////////////////////////////////////////////////////////
+/*
+ * Constants
+ */
 
-// if |z| goes beyond the threshold, point C is not in the set        //
+/* if |z| goes beyond the threshold, point C is not in the set */
 #define THRESHOLD_RADIUS 4.0
 
-// Maximum number of iterations before declaring a point in the       //
-// Mandelbrot set                                                     //
+/* Maximum number of iterations before declaring a point in the
+ * Mandelbrot set */
 #define MAX_ITERATIONS 120
 
-// image size. default is 700x500 pixels                              //
+/* image size. default is 700x500 pixels */
 #define NX 640
 #define NY 400
 
-// number of slices that are going to be distributed among the slave  //
-// processes.                                                         //
+/* number of slices that are going to be distributed among the slave
+ * processes. */
 #define N_SLICES 64
 
-// Maximum nuber of processes                                         //
+/* Maximum nuber of processes */
 #define MAX_PROCESSES 4
 
 
 
-////////////////////////////////////////////////////////////////////////
-// Functions                                                          //
-////////////////////////////////////////////////////////////////////////
+/*
+ * Functions
+ */
 
 /**
    Setup the grid in a complex C plane. Therefore, define the grid
@@ -118,7 +117,7 @@ void master(int numProcs, int *iarrBegin, int *iarrEnd,
    param count Iteration number for all scanned values.
    return The corresponding color value.
  */
-double iterate(double cReal, double cImg, int *count);
+double iterate(double cReal, double cImg);
 
 
 /**
@@ -135,7 +134,7 @@ double iterate(double cReal, double cImg, int *count);
    param storage   Data of current slide.
  */
 void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
-                  int *count, double crMin, double ciMin,
+                  double crMin, double ciMin,
                   double dcr, double dci, double *storage);
 
 
@@ -161,5 +160,5 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
    Kill the slave processes.
    param mpiSize
  */
-inline void closeMPI(int mpiSize);
-#endif  // MANDELBROT_H_
+void closeMPI(int mpiSize);
+#endif  /* MANDELBROT__H */

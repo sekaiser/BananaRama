@@ -4,61 +4,58 @@
 #include <mpi.h>
 #include <fcntl.h>
 #include "mandelbrot.h"
-////////////////////////////////////////////////////////////////////////
-//                                                                    //
-// The Mandelbrot Set                                                 //
-//                                                                    //
-// Computation: z_{i+1} = z_{i} * z_{i} + c                           //
-//                                                                    //
-// The Mandelbrot Set results from a very simple map in the complex   //
-// plane by following some rules:                                     //
-//   1) For a given complex number c, start with z = 0, and iterate   //
-//      the map above.                                                //
-//                                                                    //
-//   2) If z remains finite, even after an infinite number of         //
-//      iterations, c belongs to M.                                   //
-//                                                                    //
-//   3) Repeat the procedure, or scan, for all c in the complex plane,//
-//      to find the points belonging to M,                            //
-//                                                                    //
-//                                                                    //
-// Disclaimer:                                                        //
-// This implementation of Mandelbrot is inspired by an excellent      //
-// tutorial given by Michel Valleries, Professor for Physics at Drexel//
-// University. You can find his tutorial here:                        //
-// http://www.physics.drexel.edu/~valliere/PHYS405/Content.html       //
-//                                                                    //
-//                                                                    //
-// Inspired by Prof. Velleries we programmed a parallel version       //
-// Mandelbrot. Therefore, we used the Master-Slave model. In order    //
-// to compute the area, the master process divides  the computation   //
-// area into slices. These slices will be distributed among the       //
-// available slaves, who perform the compuation. Afterwards the slaves//
-// send the results back to the master process, who is will compute   //
-// the received data in order to generate a picture.                  //
-// The user interaction is realized by implementing a small dialog.   //
-// Furthermore we tried to implement a solution, that is as fast as   //
-// possible.                                                          //
-//                                                                    //
-//                                                                    //
-//                                                                    //
-//  author Sebastian Kaiser (743121)                                 //
-//  author Eric Kuhnt                                                //
-//  author Robert                                                    //
-//                                                                    //
-//  version 1.0  12/06/12                                            //
-//                                                                    //
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-// Constants                                                          //
-////////////////////////////////////////////////////////////////////////
-//define debug
-////////////////////////////////////////////////////////////////////////
-// Function declarations                                              //
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-// Function implementations                                           //
-////////////////////////////////////////////////////////////////////////
+/*
+ *                                                                    
+ * The Mandelbrot Set                                                
+ *                                                                    
+ * Computation: z_{i+1} = z_{i} * z_{i} + c                           
+ *                                                                    
+ * The Mandelbrot Set results from a very simple map in the complex   
+ * plane by following some rules:                                     
+ *   1) For a given complex number c, start with z = 0, and iterate   
+ *      the map above.                                                
+ *                                                                    
+ *   2) If z remains finite, even after an infinite number of         
+ *      iterations, c belongs to M.                                   
+ *                                                                    
+ *   3) Repeat the procedure, or scan, for all c in the complex plane,
+ *      to find the points belonging to M,                            
+ *                                                                    
+ *                                                                    
+ * Disclaimer:                                                        
+ * This implementation of Mandelbrot is inspired by an excellent      
+ * tutorial given by Michel Valleries, Professor for Physics at Drexel
+ * University. You can find his tutorial here:                        
+ * http://www.physics.drexel.edu/~valliere/PHYS405/Content.html       
+ *                                                                    
+ *                                                                    
+ * Inspired by Prof. Velleries we programmed a parallel version       
+ * Mandelbrot. Therefore, we used the Master-Slave model. In order    
+ * to compute the area, the master process divides  the computation   
+ * area into slices. These slices will be distributed among the       
+ * available slaves, who perform the compuation. Afterwards the slaves
+ * send the results back to the master process, who is will compute   
+ * the received data in order to generate a picture.                  
+ * The user interaction is realized by implementing a small dialog.   
+ * Furthermore we tried to implement a solution, that is as fast as   
+ * possible.                                                          
+ *                                                                    
+ *                                                                    
+ *                                                                    
+ *  author Sebastian Kaiser (743121)                                 
+ *  author Eric Kuhnt                                                
+ *  author Robert                                                   
+ *                                                                    
+ *  version 1.0  12/06/12                                            
+ *
+ */
+
+/* Constants */
+/* #define debug */
+
+
+/* Function implementations*/
+
 /* 
   Set up the grid in complex C plane to generate image.
   Zoom factor.
@@ -106,25 +103,23 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
             int average, double crMin, double ciMin, double dcr, 
             double dci, double *storage, int *offset ) {
 
-  	int    k, k_slice, slice, process;
+  	int    k, slice, process;
   	int    number, source;
   	int i, j;
-	static int slices[MAX_PROCESSES];
-  	//int    kill, 
+	int slices[MAX_PROCESSES];
+  	/* int    kill, */
 	int recv_slice;
   	double mandelbrot[NX * NY];
   	double rgb[NX][NY][3];
-  	MPI_Status status;
   	char buffer[100];
 	#ifdef debug
   		printf("Number of slices to process: %d.\n", N_SLICES);
 	#endif
-  	/* scan over slices */
-  	slice = 0;
   
-	// initialize 
-
- 	/* send a slice to each slave */
+  	/* 
+	 * initialize
+ 	 * send a slice to each slave
+	 */
   	for (process = 1; process < mpiSize; process++) { 
 
     		/* generate Mandelbrot set in each process */
@@ -136,14 +131,15 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
     		slice++;
 	}
   
-	// processing
-
-	/* scan over received slices */
-	for (k_slice = 0; k_slice < N_SLICES; k_slice++) {
+	/* 
+	 * processing
+	 * scan over received slices
+	 */
+	for (int k_slice = 0; k_slice < N_SLICES; k_slice++) {
 
 		/* receive a slice */
 		number = NX * (average + 1);
-    
+		MPI_Status status;    
 		MPI_Recv(storage, number, MPI_DOUBLE, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
 
 		/* source of slice */
@@ -174,10 +170,10 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
 		} 
 	}
       
-	// post processing steps
-
+	/* post processing steps */
 	closeMPI(mpiSize);
-       	// freeing the storage 
+
+       	/* freeing the storage */
 	free(storage);
 
 	#ifdef debug
@@ -187,7 +183,7 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
 		}
 	#endif
       
-	// file output
+	/* file output  */
       	FILE* file = fopen ("test.tga", "wb");
 
 	if(file==NULL) {
@@ -215,14 +211,14 @@ void master(int mpiSize, int *iarrBegin, int *iarrEnd,
         	fclose(file);	
       }
 
-      // finally exit the program
+      /* finally exit the program */
       exit(0);
  }
 
 void closeMPI(int mpiSize) {
 	int kill, process;
 	kill = -1;
-        // killing the slaves
+        /* killing the slaves */
         for (process = 1; process < mpiSize; process++) {
 		#ifdef debug
               		printf("Master sends '%d' to slave '%d'.\n", kill, process);
@@ -232,7 +228,7 @@ void closeMPI(int mpiSize) {
         MPI_Finalize();
 }
                                             
-double iterate(double cReal, double cImg, int *count) {
+double iterate(double cReal, double cImg) {
   double zReal, zImg, zCurrentReal, zMagnitude;
   double color;
   int    counter;
@@ -252,8 +248,6 @@ double iterate(double cReal, double cImg, int *count) {
       break;
     }
   }
-  
-  *count++;
 
   color = (double)(255*counter) / (double)MAX_ITERATIONS;
 
@@ -262,7 +256,7 @@ double iterate(double cReal, double cImg, int *count) {
 
 /* Calculate the Mandelbrot set in slice  */
 void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
-                     int *count, double crMin, double ciMin,
+                     double crMin, double ciMin,
                      double dcr, double dci,  double *storage) {
   int i,j,k;
   double cReal, cImg;
@@ -274,7 +268,7 @@ void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
        cImg = ciMin + j * dci;
 
        /* Store resulting color value */
-       storage[k++] = iterate(cReal, cImg, count);
+       storage[k++] = iterate(cReal, cImg);
     }
   }
 }
@@ -283,7 +277,6 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
            int average, double crMin, double ciMin, double dcr, 
            double dci, double *storage) {
   
-  static int count;
   int        number, slice;
   MPI_Status status;
 
@@ -304,7 +297,7 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
     }
 
     /* calculate requested slice */
-    computeSlice(slice, iarrBegin, iarrEnd, &count, crMin, ciMin, dcr, dci, storage);
+    computeSlice(slice, iarrBegin, iarrEnd, crMin, ciMin, dcr, dci, storage);
 
     /* send results back to master */
     number = NX * (average + 1);
