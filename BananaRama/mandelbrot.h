@@ -22,11 +22,11 @@
 //                                                                    //
 //                                                                    //
 //                                                                    //
-//  @author Sebastian Kaiser (743121)                                 //
-//  @author Eric Kuhnt                                                //
-//  @author Robert                                                    //
+//  author Sebastian Kaiser (743121)                                 //
+//  author Eric Kuhnt                                                //
+//  author Robert                                                    //
 //                                                                    //
-//  @version 1.0  12/06/12                                            //
+//  version 1.0  12/06/12                                            //
 //                                                                    //
 ////////////////////////////////////////////////////////////////////////
 
@@ -66,12 +66,12 @@
    spanning of the complex plane for the C variable. In addition,
    define the C spacing in the complex plane (dcr, dci).
    
-   @param crMin The lower bound of real part of complex number C.
-   @param crMax The upper bound of real part of complex number C.
-   @param ciMin The lower bound of imaginary  part of complex number C.
-   @param ciMax The upper bound of imaginary  part of complex number C.
-   @param dcr
-   @param dci
+   param crMin The lower bound of real part of complex number C.
+   param crMax The upper bound of real part of complex number C.
+   param ciMin The lower bound of imaginary  part of complex number C.
+   param ciMax The upper bound of imaginary  part of complex number C.
+   param dcr
+   param dci
  */
 void setGrid(double *crMin, double *crMax, double *ciMin,
              double *ciMax, double *dcr, double *dci);
@@ -80,10 +80,10 @@ void setGrid(double *crMin, double *crMax, double *ciMin,
 /**
    Setup the slices through which compute the Mandelbrot set.
    
-   @param iarrBegin  Begin of slice.
-   @param iarrEnd    End of slice.
-   @param iarrOffset 
-   @return Average number of slices.
+   param iarrBegin  Begin of slice.
+   param iarrEnd    End of slice.
+   param iarrOffset 
+   return Average number of slices.
  */
 int setSlices(int *iarrBegin, int *iarrEnd, int *iarrOffset);
 
@@ -91,17 +91,17 @@ int setSlices(int *iarrBegin, int *iarrEnd, int *iarrOffset);
 /**
    Master node -- control the calculation.
 
-   @param numProcs  Number of processes.
-   @param rank      Rank of current process.
-   @param iarrBegin 
-   @param iarrEnd
-   @param average   Average number of slices.
-   @param crMin     The lower bound of real part of complex number C.
-   @param ciMin     The lower bound of imaginary  part of complex
+   param numProcs  Number of processes.
+   param rank      Rank of current process.
+   param iarrBegin 
+   param iarrEnd
+   param average   Average number of slices.
+   param crMin     The lower bound of real part of complex number C.
+   param ciMin     The lower bound of imaginary  part of complex
                     number C.
-   @param dcr
-   @param dci
-   @param storage   Allocated memory for a slice.
+   param dcr
+   param dci
+   param storage   Allocated memory for a slice.
 */
 void master(int numProcs, int *iarrBegin, int *iarrEnd,
             int average, double crMin, double ciMin,
@@ -113,10 +113,10 @@ void master(int numProcs, int *iarrBegin, int *iarrEnd,
    need to check whether the given input point in complex C plane
    belongs to the set or not. 
 
-   @param cReal The real part of the complex number.
-   @param cImg  The imaginary part of the complex number.
-   @param count Iteration number for all scanned values.
-   @return The corresponding color value.
+   param cReal The real part of the complex number.
+   param cImg  The imaginary part of the complex number.
+   param count Iteration number for all scanned values.
+   return The corresponding color value.
  */
 double iterate(double cReal, double cImg, int *count);
 
@@ -124,15 +124,15 @@ double iterate(double cReal, double cImg, int *count);
 /**
    Calculate the Mandelbrot set in slice.
 
-   @param slice     Number of current slide.
-   @param iarrBegin
-   @param iarrEnd
-   @param count
-   @param crMin
-   @param ciMin
-   @param dcr
-   @param dci
-   @param storage   Data of current slide.
+   param slice     Number of current slide.
+   param iarrBegin
+   param iarrEnd
+   param count
+   param crMin
+   param ciMin
+   param dcr
+   param dci
+   param storage   Data of current slide.
  */
 void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
                   int *count, double crMin, double ciMin,
@@ -143,15 +143,15 @@ void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
    Slave processes. They calculate a specific slice as
    received from process 0.
    
-   @param rank       Rank of slave process
-   @param iarrBegin 
-   @param iarrEnd
-   @param average
-   @param crMin
-   @param ciMin
-   @param dcr
-   @param dci
-   @param storage
+   param rank       Rank of slave process
+   param iarrBegin 
+   param iarrEnd
+   param average
+   param crMin
+   param ciMin
+   param dcr
+   param dci
+   param storage
  */
 void slave(int rank, int *iarrBegin, int *iarrEnd,
            int average, double crMin, double ciMin,
@@ -159,7 +159,7 @@ void slave(int rank, int *iarrBegin, int *iarrEnd,
 
 /**
    Kill the slave processes.
-   @param mpiSize
+   param mpiSize
  */
 inline void closeMPI(int mpiSize);
 #endif  // MANDELBROT_H_
