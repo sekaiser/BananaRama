@@ -269,12 +269,12 @@ void computeSlice(int slice, int *iarrBegin, int *iarrEnd,
 }
 
 #ifdef debug
-void slave(int rank, int *iarrBegin, int *iarrEnd,
-           int average, double crMin, double ciMin, double dcr,
-	              double dci, double *storage) {
-
+void slave(int rank, int *iarrBegin, int *iarrEnd, int average,
+	   double crMin, double ciMin, double dcr, double dci, 
+	   double *storage) {
 #else
-void slave(int *iarrBegin, int *iarrEnd, int average, double crMin, double ciMin, double dcr, double dci, double* storage) {
+void slave(int *iarrBegin, int *iarrEnd, int average, double crMin,
+	   double ciMin, double dcr, double dci, double* storage) {
 #endif
   int        number, slice;
   MPI_Status status;

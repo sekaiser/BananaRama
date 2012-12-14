@@ -102,10 +102,8 @@ int setSlices(int *iarrBegin, int *iarrEnd, int *iarrOffset);
    param dci
    param storage   Allocated memory for a slice.
 */
-void master(int numProcs, int *iarrBegin, int *iarrEnd,
-            int average, double crMin, double ciMin,
-            double dcr, double dci, double *storage,
-            int *offset);
+void master(int mpiSize, int *iarrBegin, int *iarrEnd,
+            int average, double *storage, int *offset );
 
 /**
    Iterate the Mandelbrot map. Within each computation step, we
