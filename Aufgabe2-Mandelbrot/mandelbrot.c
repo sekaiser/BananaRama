@@ -119,6 +119,35 @@ unsigned char* allocateImageBuffer(int ImageWidth, int ImageHeight, unsigned cha
 	return img;
 }
 
+void slave(int rank, int ImageWidth, int ImageHeight, int N_SLICES, double MinRe,
+	   double MaxIm, double Im_factor, double Re_factor, int MaxIterations) {
+	int slice_n;
+	MPI_Status status;
+	/* reserving the transport buffer */
+	unsigned char* transportbuffer = NULL;
+	transportbuffer = allocateImageBuffer(ImageWidth, ImageHeight, transportbuffer);
+	/* reserving a buffer for the slice dimensions */
+	sliceT slice_dimensions[N_SLICES];
+	/* initialize the slices */
+	initializeSlices(ImageHeight, N_SLICES, slice_dimensions);
+	for (;;) {
+		/* receive a new slice to calculate */
+		MPI_Recv(&slice_n, 1, MPI_INT, 0, 325, MPI_COMM_WORLD, &status);
+		printf("Receiving slice '%d' in process '%d'\n", slice_n, rank);
+		/* suicide signal */
+		if (slice_n < 0) {
+			MPI_Finalize();
+			exit(0);
+		}
+		/* calculate requested slice */
+		printf("slice '%d' start-end: %d-%d\n", slice_n, slice_dimensions[slice_n].start, slice_dimensions[slice_n].end);
+		/* TODO: remove! reserving the image buffer */
+		compute_slice(MaxIterations, ImageWidth, MinRe, MaxIm, Im_factor, Re_factor, 
+			      slice_dimensions[slice_n], transportbuffer);
+		/* send results back to master */
+		MPI_Ssend(transportbuffer, 3*ImageWidth*ImageHeight, MPI_CHAR, 0, 327, MPI_COMM_WORLD);
+	}
+}
 int main(int argc, char **argv) {
 
 	/* initialize MPI */
@@ -140,20 +169,20 @@ int main(int argc, char **argv) {
 	double Re_factor = (MaxRe-MinRe)/(ImageWidth-1);
 	double Im_factor = (MaxIm-MinIm)/(ImageHeight-1);
 
-	/* reserving a buffer for the slice dimensions */
-	sliceT slice_dimensions[N_SLICES];
-	/* initialize the slices */
-	initializeSlices(ImageHeight, N_SLICES, slice_dimensions);
-
 	if(rank==0) {
+		/* reserving a buffer for the slice dimensions */
+		sliceT slice_dimensions[N_SLICES];
+		/* initialize the slices */
+		initializeSlices(ImageHeight, N_SLICES, slice_dimensions);
 		/* reserving the image buffer */
 		unsigned char* transportbuffer = NULL;
 		transportbuffer = allocateImageBuffer(ImageWidth, ImageHeight, transportbuffer);
 		/* reserving the output buffer */
 		unsigned char* out = NULL;
 		out = allocateImageBuffer(ImageWidth,ImageHeight, out);
+
 		/* 
-		    initialize
+		    initialize MPI
 		    send a slice to each slave
 		 */
 
@@ -205,27 +234,7 @@ int main(int argc, char **argv) {
 		/* writing the Mandelbrot set to a bitmap file */
 		bmp_write_output(ImageWidth, ImageHeight, FileName, out);
 	} else {
-		int slice_n;
-		MPI_Status status;
-		/* reserving the transport buffer */
-		unsigned char* transportbuffer = NULL;
-		transportbuffer = allocateImageBuffer(ImageWidth, ImageHeight, transportbuffer);
-		for (;;) {
-			/* receive a new slice to calculate */
-			MPI_Recv(&slice_n, 1, MPI_INT, 0, 325, MPI_COMM_WORLD, &status);
-			printf("Receiving slice '%d' in process '%d'\n", slice_n, rank);
-			/* suicide signal */
-			if (slice_n < 0) {
-				MPI_Finalize();
-				exit(0);
-			}
-			/* calculate requested slice */
-			printf("slice '%d' start-end: %d-%d\n", slice_n, slice_dimensions[slice_n].start, slice_dimensions[slice_n].end);
-			/* TODO: remove! reserving the image buffer */
-			compute_slice(MaxIterations, ImageWidth, MinRe, MaxIm, Im_factor, Re_factor, 
-				      slice_dimensions[slice_n], transportbuffer);
-			/* send results back to master */
-			MPI_Ssend(transportbuffer, 3*ImageWidth*ImageHeight, MPI_CHAR, 0, 327, MPI_COMM_WORLD);
-		}	
+		slave(rank, ImageWidth, ImageHeight, N_SLICES, MinRe, MaxIm, 
+		      Im_factor, Re_factor, MaxIterations);	
 	}
 }
