@@ -9,6 +9,13 @@ typedef struct {
 	int start, end;
 } sliceT;
 
+typedef struct {
+	int Width, Height, N_SLICES;
+	unsigned int MaxIterations;
+	double MinRe, MaxRe, MinIm, MaxIm, Re_factor, Im_factor;
+	char* FileName;
+} ImageConfig;
+
 void bmp_write_output(int ImageWidth, int ImageHeight, const char* FileName, 
 		 const unsigned char* img) {
 
@@ -55,21 +62,20 @@ void bmp_write_output(int ImageWidth, int ImageHeight, const char* FileName,
 	fclose(f);
 }
 
-void compute_slice(int MaxIterations, int ImageWidth, double MinRe, double MaxIm,
-		   double Im_factor, double Re_factor, sliceT mySlice, unsigned char* img) {
+void compute_slice(ImageConfig* image, sliceT mySlice, unsigned char* img) {
 
 	unsigned y;
 	for(y=mySlice.start; y<mySlice.end; ++y) {
-		double c_im = MaxIm - y*Im_factor;
+		double c_im = (*image).MaxIm - y*(*image).Im_factor;
 		unsigned x;
-	        for(x=0; x<ImageWidth; ++x) {
-			double c_re = MinRe + x*Re_factor;
+	        for(x=0; x<(*image).Width; ++x) {
+			double c_re = (*image).MinRe + x*(*image).Re_factor;
 			double Z_re = c_re, Z_im = c_im;
 			int isInside = 1;
 			double color;
 			unsigned n;
 			/* iterate */
-			for(n=0; n<MaxIterations; ++n) {
+			for(n=0; n<(*image).MaxIterations; ++n) {
 				double Z_re2 = Z_re*Z_re, Z_im2 = Z_im*Z_im;
 				if(Z_re2 + Z_im2 > 4) {
 					isInside = 0;
@@ -81,13 +87,13 @@ void compute_slice(int MaxIterations, int ImageWidth, double MinRe, double MaxIm
 			}
 			if(isInside==1) { 
 				// TODO: check if rgb > 255
-				img[(x+y*ImageWidth)*3+2] = (unsigned char)(0); // r
-				img[(x+y*ImageWidth)*3+1] = (unsigned char)(0); // g
-				img[(x+y*ImageWidth)*3+0] = (unsigned char)(0); // b
+				img[(x+y*(*image).Width)*3+2] = (unsigned char)(0); // r
+				img[(x+y*(*image).Width)*3+1] = (unsigned char)(0); // g
+				img[(x+y*(*image).Width)*3+0] = (unsigned char)(0); // b
 			} else {
-				img[(x+y*ImageWidth)*3+2] = (unsigned char)(color / MaxIterations * 255);
-				img[(x+y*ImageWidth)*3+1] = (unsigned char)(color / MaxIterations * 255 / 2);
-				img[(x+y*ImageWidth)*3+0] = (unsigned char)(color / MaxIterations * 255 / 2);
+				img[(x+y*(*image).Width)*3+2] = (unsigned char)(color / (*image).MaxIterations * 255);
+				img[(x+y*(*image).Width)*3+1] = (unsigned char)(color / (*image).MaxIterations * 255 / 2);
+				img[(x+y*(*image).Width)*3+0] = (unsigned char)(color / (*image).MaxIterations * 255 / 2);
 			}
 		}
 	}
@@ -119,17 +125,16 @@ unsigned char* allocateImageBuffer(int ImageWidth, int ImageHeight, unsigned cha
 	return img;
 }
 
-void slave(int rank, int ImageWidth, int ImageHeight, int N_SLICES, double MinRe,
-	   double MaxIm, double Im_factor, double Re_factor, int MaxIterations) {
+void slave(int rank, ImageConfig* image) {
 	int slice_n;
 	MPI_Status status;
 	/* reserving the transport buffer */
 	unsigned char* transportbuffer = NULL;
-	transportbuffer = allocateImageBuffer(ImageWidth, ImageHeight, transportbuffer);
+	transportbuffer = allocateImageBuffer((*image).Width, (*image).Height, transportbuffer);
 	/* reserving a buffer for the slice dimensions */
-	sliceT slice_dimensions[N_SLICES];
+	sliceT slice_dimensions[(*image).N_SLICES];
 	/* initialize the slices */
-	initializeSlices(ImageHeight, N_SLICES, slice_dimensions);
+	initializeSlices((*image).Height, (*image).N_SLICES, slice_dimensions);
 	for (;;) {
 		/* receive a new slice to calculate */
 		MPI_Recv(&slice_n, 1, MPI_INT, 0, 325, MPI_COMM_WORLD, &status);
@@ -142,12 +147,12 @@ void slave(int rank, int ImageWidth, int ImageHeight, int N_SLICES, double MinRe
 		/* calculate requested slice */
 		printf("slice '%d' start-end: %d-%d\n", slice_n, slice_dimensions[slice_n].start, slice_dimensions[slice_n].end);
 		/* TODO: remove! reserving the image buffer */
-		compute_slice(MaxIterations, ImageWidth, MinRe, MaxIm, Im_factor, Re_factor, 
-			      slice_dimensions[slice_n], transportbuffer);
+		compute_slice(image, slice_dimensions[slice_n], transportbuffer);
 		/* send results back to master */
-		MPI_Ssend(transportbuffer, 3*ImageWidth*ImageHeight, MPI_CHAR, 0, 327, MPI_COMM_WORLD);
+		MPI_Ssend(transportbuffer, 3*((*image).Width)*((*image).Height), MPI_CHAR, 0, 327, MPI_COMM_WORLD);
 	}
 }
+
 int main(int argc, char **argv) {
 
 	/* initialize MPI */
@@ -156,30 +161,32 @@ int main(int argc, char **argv) {
         MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	/* TODO: move this stuff to a dialog */
-	int ImageWidth = 640;
-	int ImageHeight = 480;
-	unsigned int MaxIterations = 120;
-	int N_SLICES = 11;
-	double MinRe = -2.0;
-	double MaxRe = 1.0;
-	double MinIm = -1.2;
-	char* FileName = "mandelbrot.bmp";
-	double MaxIm = MinIm+(MaxRe-MinRe)*ImageHeight/ImageWidth;
-	double Re_factor = (MaxRe-MinRe)/(ImageWidth-1);
-	double Im_factor = (MaxIm-MinIm)/(ImageHeight-1);
+	/* move this stuff to a dialog */
+	ImageConfig image;
+	image.Width = 640;
+	image.Height = 480;
+	image.MaxIterations = 120;
+	image.N_SLICES = 11;
+	image.MinRe = -2.0;
+	image.MaxRe = 1.0;
+	image.MinIm = -1.2;
+	image.MaxIm = image.MinIm+(image.MaxRe-image.MinRe)*image.Height/image.Width;
+	image.Re_factor = (image.MaxRe-image.MinRe)/(image.Width-1);
+	image.Im_factor = (image.MaxIm-image.MinIm)/(image.Height-1);
+	image.FileName = "mandelbrot.bmp";
+
 
 	if(rank==0) {
 		/* reserving a buffer for the slice dimensions */
-		sliceT slice_dimensions[N_SLICES];
+		sliceT slice_dimensions[image.N_SLICES];
 		/* initialize the slices */
-		initializeSlices(ImageHeight, N_SLICES, slice_dimensions);
+		initializeSlices(image.Height, image.N_SLICES, slice_dimensions);
 		/* reserving the image buffer */
 		unsigned char* transportbuffer = NULL;
-		transportbuffer = allocateImageBuffer(ImageWidth, ImageHeight, transportbuffer);
+		transportbuffer = allocateImageBuffer(image.Width, image.Height, transportbuffer);
 		/* reserving the output buffer */
 		unsigned char* out = NULL;
-		out = allocateImageBuffer(ImageWidth,ImageHeight, out);
+		out = allocateImageBuffer(image.Width, image.Height, out);
 
 		/* 
 		    initialize MPI
@@ -191,7 +198,7 @@ int main(int argc, char **argv) {
 		int process;
 		for (process = 1; process < mpiSize; process++) {
 			/* generate Mandelbrot set in each process */
-			if(slice_n<N_SLICES) {
+			if(slice_n<image.N_SLICES) {
 				printf("Sending slice '%d' to process '%d'\n", slice_n, process);
 				MPI_Ssend(&slice_n, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
 				slice_distribution[process] = slice_n;
@@ -200,26 +207,26 @@ int main(int argc, char **argv) {
 		}
 
 		int r_slice_n;
-		for(r_slice_n = 0; r_slice_n<N_SLICES; r_slice_n++) {
+		for(r_slice_n = 0; r_slice_n<image.N_SLICES; r_slice_n++) {
 		
 			int source;
 			MPI_Status status;
 
-			MPI_Recv(transportbuffer, 3*ImageWidth*ImageHeight, MPI_CHAR, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
+			MPI_Recv(transportbuffer, 3*image.Width*image.Height, MPI_CHAR, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
 
 			/* source of the slice */
 			source = status.MPI_SOURCE;
 			/* assemble the image */
 			printf("received computation for slice '%d' by process '%d'\nso char '%d' to '%d' are copied to out\n", 
-				slice_distribution[source], source, ImageWidth*slice_dimensions[slice_distribution[source]].start*3, 
-				ImageWidth*slice_dimensions[slice_distribution[source]].end*3);
+				slice_distribution[source], source, image.Width*slice_dimensions[slice_distribution[source]].start*3, 
+				image.Width*slice_dimensions[slice_distribution[source]].end*3);
 			int x;
-			for(	x=ImageWidth*slice_dimensions[slice_distribution[source]].start*3; 
-				x < ImageWidth*slice_dimensions[slice_distribution[source]].end*3; x++) {
+			for(	x=image.Width*slice_dimensions[slice_distribution[source]].start*3; 
+				x < image.Width*slice_dimensions[slice_distribution[source]].end*3; x++) {
 				out[x] = transportbuffer[x];
 			}	
 			/* compute another slice */
-			if (slice_n < N_SLICES) {
+			if (slice_n < image.N_SLICES) {
 				MPI_Ssend(&slice_n, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
 				slice_distribution[source] = slice_n;
 				slice_n++;
@@ -232,9 +239,8 @@ int main(int argc, char **argv) {
 		MPI_Finalize();
 
 		/* writing the Mandelbrot set to a bitmap file */
-		bmp_write_output(ImageWidth, ImageHeight, FileName, out);
+		bmp_write_output(image.Width, image.Height, image.FileName, out);
 	} else {
-		slave(rank, ImageWidth, ImageHeight, N_SLICES, MinRe, MaxIm, 
-		      Im_factor, Re_factor, MaxIterations);	
+		slave(rank, &image);	
 	}
 }
