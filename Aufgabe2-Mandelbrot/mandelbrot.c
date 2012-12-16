@@ -16,40 +16,85 @@ typedef struct {
 	char* FileName;
 } ImageConfig;
 
+unsigned char* allocateUCharP(int size) {
+
+	unsigned char* tmp = (unsigned char *)malloc(size);
+	if(tmp==0) {
+		fprintf(stderr, "Out of memory!\n");
+		exit(1);
+	}
+	memset(tmp,0,sizeof(tmp));
+	return tmp;
+}
+
+unsigned char* bmp_get_fileheader(int filesize) {
+	/* reserving some memory */
+	unsigned char* header = allocateUCharP(14);
+	/* setting the file header */
+	header[ 0] = 'B';
+	header[ 1] = 'M';
+	header[ 2] = (unsigned char)(filesize    );
+	header[ 3] = (unsigned char)(filesize>> 8);
+	header[ 4] = (unsigned char)(filesize>>16);
+	header[ 5] = (unsigned char)(filesize>>24);
+	header[ 6] = 0;
+	header[ 7] = 0;
+	header[ 8] = 0;
+	header[ 9] = 0;
+	header[10] = 54;
+	header[11] = 0;
+	header[12] = 0;
+	header[13] = 0;
+	return header;
+}
+
+unsigned char* bmp_get_infoheader(int ImageWidth, int ImageHeight) {
+	unsigned char* header = allocateUCharP(40);
+        /* setting the info header */
+	header[ 0] = 40;
+	header[ 1] = 0;
+	header[ 2] = 0;
+	header[ 3] = 0;
+	header[ 4] = (unsigned char)( ImageWidth    );
+	header[ 5] = (unsigned char)( ImageWidth>> 8);
+	header[ 6] = (unsigned char)( ImageWidth>>16);
+	header[ 7] = (unsigned char)( ImageWidth>>24);
+	header[ 8] = (unsigned char)( ImageHeight    );
+	header[ 9] = (unsigned char)( ImageHeight>> 8);
+	header[10] = (unsigned char)( ImageHeight>>16);
+	header[11] = (unsigned char)( ImageHeight>>24);
+	header[12] = 1;
+	header[13] = 0;
+	header[14] = 24;
+	header[15] = 0;
+	return header;
+}
+
+FILE* bmp_get_filehandle(const char* filename) {
+	FILE* tmp = fopen(filename,"wb");
+	if(tmp==0) {
+		fprintf(stderr, "Can not write to file '%s'!\n", filename);
+		exit(1);
+	}
+	return tmp;
+}
+
 void bmp_write_output(int ImageWidth, int ImageHeight, const char* FileName, 
 		 const unsigned char* img) {
 
 	/* computing the filesize */
  	int filesize = 54 + 3*ImageWidth*ImageHeight;
-
-	/* writing the file header */
-	unsigned char bmpfileheader[14] = {'B','M', 0,0,0,0, 0,0, 0,0, 54,0,0,0};
-	unsigned char bmpinfoheader[40] = {40,0,0,0, 0,0,0,0, 0,0,0,0, 1,0, 24,0};
+	/* file header */
+	unsigned char* fileheader = bmp_get_fileheader(filesize);
+	unsigned char* infoheader = bmp_get_infoheader(ImageWidth, ImageHeight);
 	unsigned char bmppad[3] = {0,0,0};
-	bmpfileheader[ 2] = (unsigned char)(filesize    );
-	bmpfileheader[ 3] = (unsigned char)(filesize>> 8);
-	bmpfileheader[ 4] = (unsigned char)(filesize>>16);
-	bmpfileheader[ 5] = (unsigned char)(filesize>>24);
-
-	/* writing the info header*/
-	bmpinfoheader[ 4] = (unsigned char)( ImageWidth    );
-	bmpinfoheader[ 5] = (unsigned char)( ImageWidth>> 8);
-	bmpinfoheader[ 6] = (unsigned char)( ImageWidth>>16);
-	bmpinfoheader[ 7] = (unsigned char)( ImageWidth>>24);
-	bmpinfoheader[ 8] = (unsigned char)( ImageHeight    );
-	bmpinfoheader[ 9] = (unsigned char)( ImageHeight>> 8);
-	bmpinfoheader[10] = (unsigned char)( ImageHeight>>16);
-	bmpinfoheader[11] = (unsigned char)( ImageHeight>>24);
 
 	/* open the file */
-	FILE* f;
-	f = fopen(FileName,"wb");
-
+	FILE* f = bmp_get_filehandle(FileName);
 	/* write the file header */
-	fwrite(bmpfileheader,1,14,f);
-
+	fwrite(fileheader,1,14,f);
 	/* write the info header */
-	fwrite(bmpinfoheader,1,40,f);
+	fwrite(infoheader,1,40,f);
 
 	/* write the image contents */
 	int i;
