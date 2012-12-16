@@ -171,7 +171,7 @@ void master(int mpiSize, ImageConfig* image) {
 	    send a slice to each slave
 	 */
 
-	int slice_distribution[mpiSize];
+	int slice_cache[mpiSize];
 	int slice_n = 0;
 	int process;
 	for (process = 1; process < mpiSize; process++) {
@@ -179,7 +179,7 @@ void master(int mpiSize, ImageConfig* image) {
 		if(slice_n<(*image).N_SLICES) {
 			printf("Sending slice '%d' to process '%d'\n", slice_n, process);
 			MPI_Ssend(&slice_n, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
-			slice_distribution[process] = slice_n;
+			slice_cache[process] = slice_n;
 			slice_n++;
 		}
 	}
@@ -197,18 +197,18 @@ void master(int mpiSize, ImageConfig* image) {
 		source = status.MPI_SOURCE;
 		/* assemble the image */
 		printf("received computation for slice '%d' by process '%d'\nso char '%d' to '%d' are copied to out\n", 
-			slice_distribution[source], source, (*image).Width*
-			slice_dimensions[slice_distribution[source]].start*3, 
-			(*image).Width*slice_dimensions[slice_distribution[source]].end*3);
+			slice_cache[source], source, (*image).Width*
+			slice_dimensions[slice_cache[source]].start*3, 
+			(*image).Width*slice_dimensions[slice_cache[source]].end*3);
 		int x;
-		for(	x=(*image).Width*slice_dimensions[slice_distribution[source]].start*3; 
-			x < (*image).Width*slice_dimensions[slice_distribution[source]].end*3; x++) {
+		for(	x=(*image).Width*slice_dimensions[slice_cache[source]].start*3; 
+			x < (*image).Width*slice_dimensions[slice_cache[source]].end*3; x++) {
 			out[x] = transportbuffer[x];
 		}	
 		/* compute another slice */
 		if (slice_n < (*image).N_SLICES) {
 			MPI_Ssend(&slice_n, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
-			slice_distribution[source] = slice_n;
+			slice_cache[source] = slice_n;
 			slice_n++;
 		} else {
 			int kill = -1;
@@ -222,6 +222,9 @@ void master(int mpiSize, ImageConfig* image) {
 	bmp_write_output((*image).Width, (*image).Height, (*image).FileName, out);
 }
 
+/*
+ * the main routine
+ */
 int main(int argc, char **argv) {
 
 	/* initialize MPI */
@@ -244,7 +247,7 @@ int main(int argc, char **argv) {
 	image.Im_factor = (image.MaxIm-image.MinIm)/(image.Height-1);
 	image.FileName = "mandelbrot.bmp";
 
-
+	/* doing the work */
 	if(rank==0) {
 		master(mpiSize, &image);
 	} else {
