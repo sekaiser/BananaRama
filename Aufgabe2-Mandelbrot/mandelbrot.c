@@ -153,6 +153,75 @@ void slave(int rank, ImageConfig* image) {
 	}
 }
 
+void master(int mpiSize, ImageConfig* image) {
+	
+	/* reserving a buffer for the slice dimensions */
+	sliceT slice_dimensions[(*image).N_SLICES];
+	/* initialize the slices */
+	initializeSlices((*image).Height, (*image).N_SLICES, slice_dimensions);
+	/* reserving the image buffer */
+	unsigned char* transportbuffer = NULL;
+	transportbuffer = allocateImageBuffer((*image).Width, (*image).Height, transportbuffer);
+	/* reserving the output buffer */
+	unsigned char* out = NULL;
+	out = allocateImageBuffer((*image).Width, (*image).Height, out);
+
+	/* 
+	    initialize MPI
+	    send a slice to each slave
+	 */
+
+	int slice_distribution[mpiSize];
+	int slice_n = 0;
+	int process;
+	for (process = 1; process < mpiSize; process++) {
+		/* generate Mandelbrot set in each process */
+		if(slice_n<(*image).N_SLICES) {
+			printf("Sending slice '%d' to process '%d'\n", slice_n, process);
+			MPI_Ssend(&slice_n, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
+			slice_distribution[process] = slice_n;
+			slice_n++;
+		}
+	}
+
+	int r_slice_n;
+	for(r_slice_n = 0; r_slice_n<(*image).N_SLICES; r_slice_n++) {
+		
+		int source;
+		MPI_Status status;
+
+		MPI_Recv(transportbuffer, 3*((*image).Width)*((*image).Height), 
+			 MPI_CHAR, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
+
+		/* source of the slice */
+		source = status.MPI_SOURCE;
+		/* assemble the image */
+		printf("received computation for slice '%d' by process '%d'\nso char '%d' to '%d' are copied to out\n", 
+			slice_distribution[source], source, (*image).Width*
+			slice_dimensions[slice_distribution[source]].start*3, 
+			(*image).Width*slice_dimensions[slice_distribution[source]].end*3);
+		int x;
+		for(	x=(*image).Width*slice_dimensions[slice_distribution[source]].start*3; 
+			x < (*image).Width*slice_dimensions[slice_distribution[source]].end*3; x++) {
+			out[x] = transportbuffer[x];
+		}	
+		/* compute another slice */
+		if (slice_n < (*image).N_SLICES) {
+			MPI_Ssend(&slice_n, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
+			slice_distribution[source] = slice_n;
+			slice_n++;
+		} else {
+			int kill = -1;
+			MPI_Ssend(&kill, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
+		}
+	}
+
+	MPI_Finalize();
+
+	/* writing the Mandelbrot set to a bitmap file */
+	bmp_write_output((*image).Width, (*image).Height, (*image).FileName, out);
+}
+
 int main(int argc, char **argv) {
 
 	/* initialize MPI */
@@ -177,69 +246,7 @@ int main(int argc, char **argv) {
 
 
 	if(rank==0) {
-		/* reserving a buffer for the slice dimensions */
-		sliceT slice_dimensions[image.N_SLICES];
-		/* initialize the slices */
-		initializeSlices(image.Height, image.N_SLICES, slice_dimensions);
-		/* reserving the image buffer */
-		unsigned char* transportbuffer = NULL;
-		transportbuffer = allocateImageBuffer(image.Width, image.Height, transportbuffer);
-		/* reserving the output buffer */
-		unsigned char* out = NULL;
-		out = allocateImageBuffer(image.Width, image.Height, out);
-
-		/* 
-		    initialize MPI
-		    send a slice to each slave
-		 */
-
-		int slice_distribution[mpiSize];
-		int slice_n = 0;
-		int process;
-		for (process = 1; process < mpiSize; process++) {
-			/* generate Mandelbrot set in each process */
-			if(slice_n<image.N_SLICES) {
-				printf("Sending slice '%d' to process '%d'\n", slice_n, process);
-				MPI_Ssend(&slice_n, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
-				slice_distribution[process] = slice_n;
-				slice_n++;
-			}
-		}
-
-		int r_slice_n;
-		for(r_slice_n = 0; r_slice_n<image.N_SLICES; r_slice_n++) {
-		
-			int source;
-			MPI_Status status;
-
-			MPI_Recv(transportbuffer, 3*image.Width*image.Height, MPI_CHAR, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
-
-			/* source of the slice */
-			source = status.MPI_SOURCE;
-			/* assemble the image */
-			printf("received computation for slice '%d' by process '%d'\nso char '%d' to '%d' are copied to out\n", 
-				slice_distribution[source], source, image.Width*slice_dimensions[slice_distribution[source]].start*3, 
-				image.Width*slice_dimensions[slice_distribution[source]].end*3);
-			int x;
-			for(	x=image.Width*slice_dimensions[slice_distribution[source]].start*3; 
-				x < image.Width*slice_dimensions[slice_distribution[source]].end*3; x++) {
-				out[x] = transportbuffer[x];
-			}	
-			/* compute another slice */
-			if (slice_n < image.N_SLICES) {
-				MPI_Ssend(&slice_n, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
-				slice_distribution[source] = slice_n;
-				slice_n++;
-			} else {
-				int kill = -1;
-				MPI_Ssend(&kill, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
-			}
-		}
-
-		MPI_Finalize();
-
-		/* writing the Mandelbrot set to a bitmap file */
-		bmp_write_output(image.Width, image.Height, image.FileName, out);
+		master(mpiSize, &image);
 	} else {
 		slave(rank, &image);	
 	}
