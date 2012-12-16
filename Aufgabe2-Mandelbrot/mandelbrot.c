@@ -116,11 +116,12 @@ void initializeSlices(int ImageHeight, int N_SLICES, sliceT* slice_dimensions) {
 	}
 }
 
-unsigned char* allocateImageBuffer(int ImageWidth, int ImageHeight, unsigned char* img) {
-	if(img) {
-		free(img);
+unsigned char* allocateImageBuffer(int ImageWidth, int ImageHeight) {
+	unsigned char* img = (unsigned char *)malloc(3*ImageWidth*ImageHeight);
+	if(img==0) {
+		fprintf(stderr, "Out of memory!\n");
+		exit(1);
 	}
-	img = (unsigned char *)malloc(3*ImageWidth*ImageHeight);
 	memset(img,0,sizeof(img));
 	return img;
 }
@@ -129,8 +130,7 @@ void slave(int rank, ImageConfig* image) {
 	int slice_n;
 	MPI_Status status;
 	/* reserving the transport buffer */
-	unsigned char* transportbuffer = NULL;
-	transportbuffer = allocateImageBuffer((*image).Width, (*image).Height, transportbuffer);
+	unsigned char* transportbuffer = allocateImageBuffer((*image).Width, (*image).Height);
 	/* reserving a buffer for the slice dimensions */
 	sliceT slice_dimensions[(*image).N_SLICES];
 	/* initialize the slices */
@@ -160,11 +160,9 @@ void master(int mpiSize, ImageConfig* image) {
 	/* initialize the slices */
 	initializeSlices((*image).Height, (*image).N_SLICES, slice_dimensions);
 	/* reserving the image buffer */
-	unsigned char* transportbuffer = NULL;
-	transportbuffer = allocateImageBuffer((*image).Width, (*image).Height, transportbuffer);
+	unsigned char* transportbuffer = allocateImageBuffer((*image).Width, (*image).Height);
 	/* reserving the output buffer */
-	unsigned char* out = NULL;
-	out = allocateImageBuffer((*image).Width, (*image).Height, out);
+	unsigned char* out = allocateImageBuffer((*image).Width, (*image).Height);
 
 	/* 
 	    initialize MPI
