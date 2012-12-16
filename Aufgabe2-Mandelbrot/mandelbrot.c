@@ -145,12 +145,11 @@ int main(int argc, char **argv) {
 	/* initialize the slices */
 	initializeSlices(ImageHeight, N_SLICES, slice_dimensions);
 
-	/* reserving the image buffer */
-	unsigned char* img = NULL;
-	img = allocateImageBuffer(ImageWidth, ImageHeight, img);
-	
 	if(rank==0) {
-	
+		/* reserving the image buffer */
+		unsigned char* transportbuffer = NULL;
+		transportbuffer = allocateImageBuffer(ImageWidth, ImageHeight, transportbuffer);
+		/* reserving the output buffer */
 		unsigned char* out = NULL;
 		out = allocateImageBuffer(ImageWidth,ImageHeight, out);
 		/* 
@@ -177,7 +176,7 @@ int main(int argc, char **argv) {
 			int source;
 			MPI_Status status;
 
-			MPI_Recv(img, 3*ImageWidth*ImageHeight, MPI_CHAR, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
+			MPI_Recv(transportbuffer, 3*ImageWidth*ImageHeight, MPI_CHAR, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
 
 			/* source of the slice */
 			source = status.MPI_SOURCE;
@@ -188,7 +187,7 @@ int main(int argc, char **argv) {
 			int x;
 			for(	x=ImageWidth*slice_dimensions[slice_distribution[source]].start*3; 
 				x < ImageWidth*slice_dimensions[slice_distribution[source]].end*3; x++) {
-				out[x] = img[x];
+				out[x] = transportbuffer[x];
 			}	
 			/* compute another slice */
 			if (slice_n < N_SLICES) {
@@ -208,6 +207,9 @@ int main(int argc, char **argv) {
 	} else {
 		int slice_n;
 		MPI_Status status;
+		/* reserving the transport buffer */
+		unsigned char* transportbuffer = NULL;
+		transportbuffer = allocateImageBuffer(ImageWidth, ImageHeight, transportbuffer);
 		for (;;) {
 			/* receive a new slice to calculate */
 			MPI_Recv(&slice_n, 1, MPI_INT, 0, 325, MPI_COMM_WORLD, &status);
@@ -220,9 +222,10 @@ int main(int argc, char **argv) {
 			/* calculate requested slice */
 			printf("slice '%d' start-end: %d-%d\n", slice_n, slice_dimensions[slice_n].start, slice_dimensions[slice_n].end);
 			/* TODO: remove! reserving the image buffer */
-			compute_slice(MaxIterations, ImageWidth, MinRe, MaxIm, Im_factor, Re_factor, slice_dimensions[slice_n], img);
+			compute_slice(MaxIterations, ImageWidth, MinRe, MaxIm, Im_factor, Re_factor, 
+				      slice_dimensions[slice_n], transportbuffer);
 			/* send results back to master */
-			MPI_Ssend(img, 3*ImageWidth*ImageHeight, MPI_CHAR, 0, 327, MPI_COMM_WORLD);
+			MPI_Ssend(transportbuffer, 3*ImageWidth*ImageHeight, MPI_CHAR, 0, 327, MPI_COMM_WORLD);
 		}	
 	}
 }
