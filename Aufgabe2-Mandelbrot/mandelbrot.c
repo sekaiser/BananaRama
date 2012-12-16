@@ -126,15 +126,9 @@ unsigned char* allocateImageBuffer(int ImageWidth, int ImageHeight) {
 	return img;
 }
 
-void slave(int rank, ImageConfig* image) {
+void slave_recv(int rank, ImageConfig* image, sliceT* slice_dimensions, unsigned char* transportbuffer) {
 	int slice_n;
 	MPI_Status status;
-	/* reserving the transport buffer */
-	unsigned char* transportbuffer = allocateImageBuffer((*image).Width, (*image).Height);
-	/* reserving a buffer for the slice dimensions */
-	sliceT slice_dimensions[(*image).N_SLICES];
-	/* initialize the slices */
-	initializeSlices((*image).Height, (*image).N_SLICES, slice_dimensions);
 	for (;;) {
 		/* receive a new slice to calculate */
 		MPI_Recv(&slice_n, 1, MPI_INT, 0, 325, MPI_COMM_WORLD, &status);
@@ -146,11 +140,21 @@ void slave(int rank, ImageConfig* image) {
 		}
 		/* calculate requested slice */
 		printf("slice '%d' start-end: %d-%d\n", slice_n, slice_dimensions[slice_n].start, slice_dimensions[slice_n].end);
-		/* TODO: remove! reserving the image buffer */
 		compute_slice(image, slice_dimensions[slice_n], transportbuffer);
 		/* send results back to master */
 		MPI_Ssend(transportbuffer, 3*((*image).Width)*((*image).Height), MPI_CHAR, 0, 327, MPI_COMM_WORLD);
 	}
+}
+
+void slave(int rank, ImageConfig* image) {
+	/* reserving the transport buffer */
+	unsigned char* transportbuffer = allocateImageBuffer((*image).Width, (*image).Height);
+	/* reserving a buffer for the slice dimensions */
+	sliceT slice_dimensions[(*image).N_SLICES];
+	/* initialize the slices */
+	initializeSlices((*image).Height, (*image).N_SLICES, slice_dimensions);
+	/* processing the slices */
+	slave_recv(rank, image, slice_dimensions, transportbuffer);
 }
 
 void master(int mpiSize, ImageConfig* image) {
