@@ -106,39 +106,42 @@ void bmp_write_output(int ImageWidth, int ImageHeight, const char* FileName,
 	fclose(f);
 }
 
-void compute_slice(ImageConfig* image, sliceT mySlice, unsigned char* img) {
+void iterate(ImageConfig* image, int x, int y, double Z_re, double Z_im, double c_re, double c_im, 
+	     unsigned char* img) {
+	int isInside = 1;
+	double color;
+	unsigned n;
+	/* iterate */
+	for(n=0; n<(*image).MaxIterations; ++n) {
+		double Z_re2 = Z_re*Z_re, Z_im2 = Z_im*Z_im;
+		if(Z_re2 + Z_im2 > 4) {
+			isInside = 0;
+			color = n;
+			break;
+		}
+		Z_im = 2*Z_re*Z_im + c_im;
+		Z_re = Z_re2 - Z_im2 + c_re;
+	}
+	if(isInside==1) { 
+		img[(x+y*(*image).Width)*3+2] = (unsigned char)(0); /* r */
+		img[(x+y*(*image).Width)*3+1] = (unsigned char)(0); /* g */
+		img[(x+y*(*image).Width)*3+0] = (unsigned char)(0); /* b */
+	} else {
+		img[(x+y*(*image).Width)*3+2] = (unsigned char)(color / (*image).MaxIterations * 255);
+		img[(x+y*(*image).Width)*3+1] = (unsigned char)(color / (*image).MaxIterations * 255 / 2);
+		img[(x+y*(*image).Width)*3+0] = (unsigned char)(color / (*image).MaxIterations * 255 / 2);
+	}
+}
 
-	unsigned y;
+void compute_slice(ImageConfig* image, sliceT mySlice, unsigned char* img) {
+	int y;
 	for(y=mySlice.start; y<mySlice.end; ++y) {
 		double c_im = (*image).MaxIm - y*(*image).Im_factor;
-		unsigned x;
+		int x;
 	        for(x=0; x<(*image).Width; ++x) {
 			double c_re = (*image).MinRe + x*(*image).Re_factor;
 			double Z_re = c_re, Z_im = c_im;
-			int isInside = 1;
-			double color;
-			unsigned n;
-			/* iterate */
-			for(n=0; n<(*image).MaxIterations; ++n) {
-				double Z_re2 = Z_re*Z_re, Z_im2 = Z_im*Z_im;
-				if(Z_re2 + Z_im2 > 4) {
-					isInside = 0;
-					color = n;
-					break;
-				}
-				Z_im = 2*Z_re*Z_im + c_im;
-				Z_re = Z_re2 - Z_im2 + c_re;
-			}
-			if(isInside==1) { 
-				// TODO: check if rgb > 255
-				img[(x+y*(*image).Width)*3+2] = (unsigned char)(0); // r
-				img[(x+y*(*image).Width)*3+1] = (unsigned char)(0); // g
-				img[(x+y*(*image).Width)*3+0] = (unsigned char)(0); // b
-			} else {
-				img[(x+y*(*image).Width)*3+2] = (unsigned char)(color / (*image).MaxIterations * 255);
-				img[(x+y*(*image).Width)*3+1] = (unsigned char)(color / (*image).MaxIterations * 255 / 2);
-				img[(x+y*(*image).Width)*3+0] = (unsigned char)(color / (*image).MaxIterations * 255 / 2);
-			}
+			iterate(image, x, y, Z_re, Z_im, c_re, c_im, img);
 		}
 	}
 }
@@ -299,4 +302,5 @@ int main(int argc, char **argv) {
 	} else {
 		slave(rank, &image);	
 	}
+	return 0;
 }
