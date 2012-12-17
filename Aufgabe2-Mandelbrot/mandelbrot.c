@@ -205,6 +205,20 @@ void slave(int rank, ImageConfig* image) {
 	slave_recv(rank, image, slice_dimensions, transportbuffer);
 }
 
+int mpi_init_slices(int mpiSize, int N_SLICES, int* slice_cache) {
+	int process, slice_n=0;
+	for (process = 1; process < mpiSize; process++) {
+		/* generate Mandelbrot set in each process */
+		if(slice_n<N_SLICES) {
+			printf("Sending slice '%d' to process '%d'\n", slice_n, process);
+			MPI_Ssend(&slice_n, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
+			slice_cache[process] = slice_n;
+			slice_n++;
+		}
+	}
+	return slice_n;
+}
+
 void master(int mpiSize, ImageConfig* image) {
 	
 	/* reserving a buffer for the slice dimensions */
@@ -215,24 +229,9 @@ void master(int mpiSize, ImageConfig* image) {
 	unsigned char* transportbuffer = allocateImageBuffer((*image).Width, (*image).Height);
 	/* reserving the output buffer */
 	unsigned char* out = allocateImageBuffer((*image).Width, (*image).Height);
-
-	/* 
-	    initialize MPI
-	    send a slice to each slave
-	 */
-
+	/* initialize MPI: send a slice to each slave */
 	int slice_cache[mpiSize];
-	int slice_n = 0;
-	int process;
-	for (process = 1; process < mpiSize; process++) {
-		/* generate Mandelbrot set in each process */
-		if(slice_n<(*image).N_SLICES) {
-			printf("Sending slice '%d' to process '%d'\n", slice_n, process);
-			MPI_Ssend(&slice_n, 1, MPI_INT, process, 325, MPI_COMM_WORLD);
-			slice_cache[process] = slice_n;
-			slice_n++;
-		}
-	}
+	int slice_n = mpi_init_slices(mpiSize, (*image).N_SLICES, slice_cache);
 
 	int r_slice_n;
 	for(r_slice_n = 0; r_slice_n<(*image).N_SLICES; r_slice_n++) {
