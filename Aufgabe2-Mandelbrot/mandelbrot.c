@@ -174,7 +174,9 @@ unsigned char* allocateImageBuffer(int ImageWidth, int ImageHeight) {
 	return img;
 }
 
-void slave_recv(int rank, ImageConfig* image, sliceT* slice_dimensions, unsigned char* transportbuffer) {
+void slave_recv(int rank, ImageConfig* image, sliceT* slice_dimensions, 
+	unsigned char* transportbuffer) {
+
 	int slice_n;
 	MPI_Status status;
 	for (;;) {
@@ -205,7 +207,7 @@ void slave(int rank, ImageConfig* image) {
 	slave_recv(rank, image, slice_dimensions, transportbuffer);
 }
 
-int mpi_init_slices(int mpiSize, int N_SLICES, int* slice_cache) {
+int mpi_slices_init(int mpiSize, int N_SLICES, int* slice_cache) {
 	int process, slice_n=0;
 	for (process = 1; process < mpiSize; process++) {
 		/* generate Mandelbrot set in each process */
@@ -219,19 +221,9 @@ int mpi_init_slices(int mpiSize, int N_SLICES, int* slice_cache) {
 	return slice_n;
 }
 
-void master(int mpiSize, ImageConfig* image) {
-	
-	/* reserving a buffer for the slice dimensions */
-	sliceT slice_dimensions[(*image).N_SLICES];
-	/* initialize the slices */
-	initializeSlices((*image).Height, (*image).N_SLICES, slice_dimensions);
-	/* reserving the image buffer */
-	unsigned char* transportbuffer = allocateImageBuffer((*image).Width, (*image).Height);
-	/* reserving the output buffer */
-	unsigned char* out = allocateImageBuffer((*image).Width, (*image).Height);
-	/* initialize MPI: send a slice to each slave */
-	int slice_cache[mpiSize];
-	int slice_n = mpi_init_slices(mpiSize, (*image).N_SLICES, slice_cache);
+void mpi_slices_process(ImageConfig* image, int slice_n, sliceT* slice_dimensions, 
+			int* slice_cache, unsigned char* transportbuffer,
+			unsigned char* out) {
 
 	int r_slice_n;
 	for(r_slice_n = 0; r_slice_n<(*image).N_SLICES; r_slice_n++) {
@@ -264,9 +256,26 @@ void master(int mpiSize, ImageConfig* image) {
 			MPI_Ssend(&kill, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
 		}
 	}
+}
 
+void master(int mpiSize, ImageConfig* image) {
+	
+	/* reserving a buffer for the slice dimensions */
+	sliceT slice_dimensions[(*image).N_SLICES];
+	/* initialize the slices */
+	initializeSlices((*image).Height, (*image).N_SLICES, slice_dimensions);
+	/* reserving the transport buffer */
+	unsigned char* transportbuffer = allocateImageBuffer((*image).Width, (*image).Height);
+	/* reserving the output buffer */
+	unsigned char* out = allocateImageBuffer((*image).Width, (*image).Height);
+	/* initialize MPI: send a slice to each slave */
+	int slice_cache[mpiSize];
+	int slice_n = mpi_slices_init(mpiSize, (*image).N_SLICES, slice_cache);
+	/* process remaining slices */
+	mpi_slices_process(image, slice_n, slice_dimensions, slice_cache, transportbuffer,
+			   out);
+	/* finalize MPI */
 	MPI_Finalize();
-
 	/* writing the Mandelbrot set to a bitmap file */
 	bmp_write_output((*image).Width, (*image).Height, (*image).FileName, out);
 }
