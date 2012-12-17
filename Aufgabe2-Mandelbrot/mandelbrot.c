@@ -106,7 +106,7 @@ void bmp_write_output(int ImageWidth, int ImageHeight, const char* FileName,
 	fclose(f);
 }
 
-void iterate(ImageConfig* image, int x, int y, double Z_re, double Z_im, double c_re, double c_im, 
+void point_iterate_and_store(ImageConfig* image, int x, int y, double Z_re, double Z_im, double c_re, double c_im, 
 	     unsigned char* img) {
 	int isInside = 1;
 	double color;
@@ -141,7 +141,8 @@ void compute_slice(ImageConfig* image, sliceT mySlice, unsigned char* img) {
 	        for(x=0; x<(*image).Width; ++x) {
 			double c_re = (*image).MinRe + x*(*image).Re_factor;
 			double Z_re = c_re, Z_im = c_im;
-			iterate(image, x, y, Z_re, Z_im, c_re, c_im, img);
+			/* iterate and store a points value */
+			point_iterate_and_store(image, x, y, Z_re, Z_im, c_re, c_im, img);
 		}
 	}
 }
