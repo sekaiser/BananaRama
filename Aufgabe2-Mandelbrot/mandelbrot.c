@@ -4,6 +4,8 @@
 #include <fcntl.h>
 #include <mpi.h>
 
+typedef unsigned char uchar;
+
 typedef struct {
 	int start, end;
 } sliceT;
@@ -15,9 +17,9 @@ typedef struct {
 	char* FileName;
 } ImageConfig;
 
-unsigned char* allocateUCharP(int size) {
+uchar* allocateUCharP(int size) {
 
-	unsigned char* tmp = (unsigned char *)malloc(size);
+	uchar* tmp = (uchar*)malloc(size);
 	if(tmp==0) {
 		fprintf(stderr, "Out of memory!\n");
 		exit(1);
@@ -26,16 +28,16 @@ unsigned char* allocateUCharP(int size) {
 	return tmp;
 }
 
-unsigned char* bmp_get_fileheader(int filesize) {
+uchar* bmp_get_fileheader(int filesize) {
 	/* reserving some memory */
-	unsigned char* header = allocateUCharP(14);
+	uchar* header = allocateUCharP(14);
 	/* setting the file header */
 	header[ 0] = 'B';
 	header[ 1] = 'M';
-	header[ 2] = (unsigned char)(filesize    );
-	header[ 3] = (unsigned char)(filesize>> 8);
-	header[ 4] = (unsigned char)(filesize>>16);
-	header[ 5] = (unsigned char)(filesize>>24);
+	header[ 2] = (uchar)(filesize    );
+	header[ 3] = (uchar)(filesize>> 8);
+	header[ 4] = (uchar)(filesize>>16);
+	header[ 5] = (uchar)(filesize>>24);
 	header[ 6] = 0;
 	header[ 7] = 0;
 	header[ 8] = 0;
@@ -47,21 +49,21 @@ unsigned char* bmp_get_fileheader(int filesize) {
 	return header;
 }
 
-unsigned char* bmp_get_infoheader(int ImageWidth, int ImageHeight) {
-	unsigned char* header = allocateUCharP(40);
+uchar* bmp_get_infoheader(int ImageWidth, int ImageHeight) {
+	uchar* header = allocateUCharP(40);
         /* setting the info header */
 	header[ 0] = 40;
 	header[ 1] = 0;
 	header[ 2] = 0;
 	header[ 3] = 0;
-	header[ 4] = (unsigned char)( ImageWidth    );
-	header[ 5] = (unsigned char)( ImageWidth>> 8);
-	header[ 6] = (unsigned char)( ImageWidth>>16);
-	header[ 7] = (unsigned char)( ImageWidth>>24);
-	header[ 8] = (unsigned char)( ImageHeight    );
-	header[ 9] = (unsigned char)( ImageHeight>> 8);
-	header[10] = (unsigned char)( ImageHeight>>16);
-	header[11] = (unsigned char)( ImageHeight>>24);
+	header[ 4] = (uchar)( ImageWidth    );
+	header[ 5] = (uchar)( ImageWidth>> 8);
+	header[ 6] = (uchar)( ImageWidth>>16);
+	header[ 7] = (uchar)( ImageWidth>>24);
+	header[ 8] = (uchar)( ImageHeight    );
+	header[ 9] = (uchar)( ImageHeight>> 8);
+	header[10] = (uchar)( ImageHeight>>16);
+	header[11] = (uchar)( ImageHeight>>24);
 	header[12] = 1;
 	header[13] = 0;
 	header[14] = 24;
@@ -79,14 +81,14 @@ FILE* bmp_get_filehandle(const char* filename) {
 }
 
 void bmp_write_output(int ImageWidth, int ImageHeight, const char* FileName, 
-		 const unsigned char* img) {
+		 const uchar* img) {
 
 	/* computing the filesize */
  	int filesize = 54 + 3*ImageWidth*ImageHeight;
 	/* file header */
-	unsigned char* fileheader = bmp_get_fileheader(filesize);
-	unsigned char* infoheader = bmp_get_infoheader(ImageWidth, ImageHeight);
-	unsigned char bmppad[3] = {0,0,0};
+	uchar* fileheader = bmp_get_fileheader(filesize);
+	uchar* infoheader = bmp_get_infoheader(ImageWidth, ImageHeight);
+	uchar bmppad[3] = {0,0,0};
 
 	/* open the file */
 	FILE* f = bmp_get_filehandle(FileName);
@@ -107,7 +109,7 @@ void bmp_write_output(int ImageWidth, int ImageHeight, const char* FileName,
 }
 
 void point_iterate_and_store(ImageConfig* image, int x, int y, double Z_re, double Z_im, double c_re, double c_im, 
-	     unsigned char* img) {
+	     uchar* img) {
 	int isInside = 1;
 	double color;
 	unsigned n;
@@ -123,17 +125,17 @@ void point_iterate_and_store(ImageConfig* image, int x, int y, double Z_re, doub
 		Z_re = Z_re2 - Z_im2 + c_re;
 	}
 	if(isInside==1) { 
-		img[(x+y*(*image).Width)*3+2] = (unsigned char)(0); /* r */
-		img[(x+y*(*image).Width)*3+1] = (unsigned char)(0); /* g */
-		img[(x+y*(*image).Width)*3+0] = (unsigned char)(0); /* b */
+		img[(x+y*(*image).Width)*3+2] = (uchar)(0); /* r */
+		img[(x+y*(*image).Width)*3+1] = (uchar)(0); /* g */
+		img[(x+y*(*image).Width)*3+0] = (uchar)(0); /* b */
 	} else {
-		img[(x+y*(*image).Width)*3+2] = (unsigned char)(color / (*image).MaxIterations * 255);
-		img[(x+y*(*image).Width)*3+1] = (unsigned char)(color / (*image).MaxIterations * 255 / 2);
-		img[(x+y*(*image).Width)*3+0] = (unsigned char)(color / (*image).MaxIterations * 255 / 2);
+		img[(x+y*(*image).Width)*3+2] = (uchar)(color / (*image).MaxIterations * 255);
+		img[(x+y*(*image).Width)*3+1] = (uchar)(color / (*image).MaxIterations * 255 / 2);
+		img[(x+y*(*image).Width)*3+0] = (uchar)(color / (*image).MaxIterations * 255 / 2);
 	}
 }
 
-void compute_slice(ImageConfig* image, sliceT mySlice, unsigned char* img) {
+void compute_slice(ImageConfig* image, sliceT mySlice, uchar* img) {
 	int y;
 	for(y=mySlice.start; y<mySlice.end; ++y) {
 		double c_im = (*image).MaxIm - y*(*image).Im_factor;
@@ -164,8 +166,8 @@ void initializeSlices(int ImageHeight, int N_SLICES, sliceT* slice_dimensions) {
 	}
 }
 
-unsigned char* allocateImageBuffer(int ImageWidth, int ImageHeight) {
-	unsigned char* img = (unsigned char *)malloc(3*ImageWidth*ImageHeight);
+uchar* allocateImageBuffer(int ImageWidth, int ImageHeight) {
+	uchar* img = (uchar*)malloc(3*ImageWidth*ImageHeight);
 	if(img==0) {
 		fprintf(stderr, "Out of memory!\n");
 		exit(1);
@@ -175,7 +177,7 @@ unsigned char* allocateImageBuffer(int ImageWidth, int ImageHeight) {
 }
 
 void slave_recv(int rank, ImageConfig* image, sliceT* slice_dimensions, 
-	unsigned char* transportbuffer) {
+	uchar* transportbuffer) {
 
 	int slice_n;
 	MPI_Status status;
@@ -198,7 +200,7 @@ void slave_recv(int rank, ImageConfig* image, sliceT* slice_dimensions,
 
 void slave(int rank, ImageConfig* image) {
 	/* reserving the transport buffer */
-	unsigned char* transportbuffer = allocateImageBuffer((*image).Width, (*image).Height);
+	uchar* transportbuffer = allocateImageBuffer((*image).Width, (*image).Height);
 	/* reserving a buffer for the slice dimensions */
 	sliceT slice_dimensions[(*image).N_SLICES];
 	/* initialize the slices */
@@ -222,8 +224,7 @@ int mpi_slices_init(int mpiSize, int N_SLICES, int* slice_cache) {
 }
 
 void mpi_slices_process(ImageConfig* image, int slice_n, sliceT* slice_dimensions, 
-			int* slice_cache, unsigned char* transportbuffer,
-			unsigned char* out) {
+			int* slice_cache, uchar* transportbuffer, uchar* out) {
 
 	int r_slice_n;
 	for(r_slice_n = 0; r_slice_n<(*image).N_SLICES; r_slice_n++) {
@@ -265,9 +266,9 @@ void master(int mpiSize, ImageConfig* image) {
 	/* initialize the slices */
 	initializeSlices((*image).Height, (*image).N_SLICES, slice_dimensions);
 	/* reserving the transport buffer */
-	unsigned char* transportbuffer = allocateImageBuffer((*image).Width, (*image).Height);
+	uchar* transportbuffer = allocateImageBuffer((*image).Width, (*image).Height);
 	/* reserving the output buffer */
-	unsigned char* out = allocateImageBuffer((*image).Width, (*image).Height);
+	uchar* out = allocateImageBuffer((*image).Width, (*image).Height);
 	/* initialize MPI: send a slice to each slave */
 	int slice_cache[mpiSize];
 	int slice_n = mpi_slices_init(mpiSize, (*image).N_SLICES, slice_cache);
