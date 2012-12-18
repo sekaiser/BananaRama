@@ -31,16 +31,6 @@ Tuchar* allocateTucharP(int* size) {
 	return tmp;
 }
 
-Tuchar* allocateImageBuffer(int iImageWidth, int iImageHeight) {
-	Tuchar* img = (Tuchar*)malloc(3*iImageWidth*iImageHeight);
-	if(img==0) {
-		fprintf(stderr, "Out of memory!\n");
-		exit(1);
-	}
-	memset(img,0,sizeof(img));
-	return img;
-}
-
 Tuchar* getBmpFileHeader(int* filesize) {
 
 	/* reserving some memory */
@@ -222,8 +212,10 @@ void slaveReceive(int* rank, TImageConfig* image, TSlice* sliceDimensions, Tucha
 }
 
 void slave(int* rank, TImageConfig* image) {
+
+	int iImgSize = 3 * image->iWidth * image->iHeight;
 	/* reserving the transport buffer */
-	Tuchar* buffer = allocateImageBuffer(image->iWidth, image->iHeight);
+	Tuchar* buffer = allocateTucharP(&iImgSize);
 
 	/* reserving a buffer for the slice dimensions */
 	TSlice sliceDimensions[image->iSlices];
@@ -252,37 +244,37 @@ int initializeProcesses(int* iSize, int* iSlices, int* iSliceCache) {
 void processSlices(TImageConfig* image, int* iSlice, TSlice* sliceDimensions, 
 			int* iSliceCache, Tuchar* buffer, Tuchar* out) {
 
-	int r_slice_n;
-	for(r_slice_n = 0; r_slice_n<(*image).iSlices; r_slice_n++) {
+	int iRecvSlice;
+	for(iRecvSlice = 0; iRecvSlice < image->iSlices; iRecvSlice++) {
 		
-		int source;
+		int iSource;
 		MPI_Status status;
 
-		MPI_Recv(buffer, 3*((*image).iWidth)*((*image).iHeight), 
+		MPI_Recv(buffer, 3 * image->iWidth * image->iHeight, 
 			 MPI_CHAR, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
 
 		/* source of the slice */
-		source = status.MPI_SOURCE;
+		iSource = status.MPI_SOURCE;
 		/* assemble the image */
 		printf("received computation for slice '%d' by process '%d'\nso char '%d' to '%d' are copied to out\n", 
-			iSliceCache[source], source,
-			image->iWidth * sliceDimensions[iSliceCache[source]].start * 3, 
-			image->iWidth * sliceDimensions[iSliceCache[source]].end * 3);
+			iSliceCache[iSource], iSource,
+			image->iWidth * sliceDimensions[iSliceCache[iSource]].start * 3, 
+			image->iWidth * sliceDimensions[iSliceCache[iSource]].end * 3);
 
 		int x;
-		for(x = image->iWidth * sliceDimensions[iSliceCache[source]].start * 3; 
-			x < image->iWidth * sliceDimensions[iSliceCache[source]].end * 3; x++) {
+		for(x = image->iWidth * sliceDimensions[iSliceCache[iSource]].start * 3; 
+			x < image->iWidth * sliceDimensions[iSliceCache[iSource]].end * 3; x++) {
 			out[x] = buffer[x];
 		}	
 
 		/* compute another slice */
 		if (*iSlice < image->iSlices) {
-			MPI_Ssend(iSlice, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
-			iSliceCache[source] = *iSlice;
+			MPI_Ssend(iSlice, 1, MPI_INT, iSource, 325, MPI_COMM_WORLD);
+			iSliceCache[iSource] = *iSlice;
 			(*iSlice)++;
 		} else {
 			int kill = -1;
-			MPI_Ssend(&kill, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
+			MPI_Ssend(&kill, 1, MPI_INT, iSource, 325, MPI_COMM_WORLD);
 		}
 	}
 }
@@ -295,11 +287,12 @@ void master(int* iSize, TImageConfig* image) {
 	/* initialize the slices */
 	initializeSlices(&(image->iHeight), &(image->iSlices), sliceDimensions);
 
+	int iImgSize = 3 * image->iWidth * image->iHeight;
 	/* reserving the transport buffer */
-	Tuchar* buffer = allocateImageBuffer(image->iWidth, image->iHeight);
+	Tuchar* buffer = allocateTucharP(&iImgSize);
 
 	/* reserving the output buffer */
-	Tuchar* out = allocateImageBuffer(image->iWidth, image->iHeight);
+	Tuchar* out = allocateTucharP(&iImgSize);
 
 	/* initialize MPI: send a slice to each slave */
 	int iSliceCache[*iSize];
