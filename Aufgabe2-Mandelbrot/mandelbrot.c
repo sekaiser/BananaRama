@@ -243,8 +243,8 @@ int mpi_slices_init(int* iSize, int iN_SLICES, int* slice_cache) {
 	return slice_n;
 }
 
-void mpi_slices_process(TImageConfig* image, int slice_n, TSlice* slice_dimensions, 
-			int* slice_cache, Tuchar* transportbuffer, Tuchar* out) {
+void processSlices(TImageConfig* image, int* iSlice, TSlice* sliceDimensions, 
+			int* iSliceCache, Tuchar* buffer, Tuchar* out) {
 
 	int r_slice_n;
 	for(r_slice_n = 0; r_slice_n<(*image).iSlices; r_slice_n++) {
@@ -252,26 +252,28 @@ void mpi_slices_process(TImageConfig* image, int slice_n, TSlice* slice_dimensio
 		int source;
 		MPI_Status status;
 
-		MPI_Recv(transportbuffer, 3*((*image).iWidth)*((*image).iHeight), 
+		MPI_Recv(buffer, 3*((*image).iWidth)*((*image).iHeight), 
 			 MPI_CHAR, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
 
 		/* source of the slice */
 		source = status.MPI_SOURCE;
 		/* assemble the image */
 		printf("received computation for slice '%d' by process '%d'\nso char '%d' to '%d' are copied to out\n", 
-			slice_cache[source], source, (*image).iWidth*
-			slice_dimensions[slice_cache[source]].start*3, 
-			(*image).iWidth*slice_dimensions[slice_cache[source]].end*3);
+			iSliceCache[source], source,
+			image->iWidth * sliceDimensions[iSliceCache[source]].start * 3, 
+			image->iWidth * sliceDimensions[iSliceCache[source]].end * 3);
+
 		int x;
-		for(	x=(*image).iWidth*slice_dimensions[slice_cache[source]].start*3; 
-			x < (*image).iWidth*slice_dimensions[slice_cache[source]].end*3; x++) {
-			out[x] = transportbuffer[x];
+		for(x = image->iWidth * sliceDimensions[iSliceCache[source]].start * 3; 
+			x < image->iWidth * sliceDimensions[iSliceCache[source]].end * 3; x++) {
+			out[x] = buffer[x];
 		}	
+
 		/* compute another slice */
-		if (slice_n < (*image).iSlices) {
-			MPI_Ssend(&slice_n, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
-			slice_cache[source] = slice_n;
-			slice_n++;
+		if (*iSlice < image->iSlices) {
+			MPI_Ssend(iSlice, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
+			iSliceCache[source] = *iSlice;
+			(*iSlice)++;
 		} else {
 			int kill = -1;
 			MPI_Ssend(&kill, 1, MPI_INT, source, 325, MPI_COMM_WORLD);
@@ -288,18 +290,17 @@ void master(int* iSize, TImageConfig* image) {
 	initializeSlices(&(image->iHeight), &(image->iSlices), sliceDimensions);
 
 	/* reserving the transport buffer */
-	Tuchar* transportbuffer = allocateImageBuffer(image->iWidth, image->iHeight);
+	Tuchar* buffer = allocateImageBuffer(image->iWidth, image->iHeight);
 
 	/* reserving the output buffer */
 	Tuchar* out = allocateImageBuffer(image->iWidth, image->iHeight);
 
 	/* initialize MPI: send a slice to each slave */
-	int slice_cache[*iSize];
-	int slice_n = mpi_slices_init(iSize, image->iSlices, slice_cache);
+	int iSliceCache[*iSize];
+	int iSlice = mpi_slices_init(iSize, image->iSlices, iSliceCache);
 
 	/* process remaining slices */
-	mpi_slices_process(image, slice_n, sliceDimensions, slice_cache, transportbuffer,
-			   out);
+	processSlices(image, &iSlice, sliceDimensions, iSliceCache, buffer, out);
 
 	/* finalize MPI */
 	MPI_Finalize();
