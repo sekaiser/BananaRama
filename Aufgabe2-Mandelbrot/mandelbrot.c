@@ -134,30 +134,33 @@ void writeBmp(int* iImageWidth, int* iImageHeight, const char* FileName, const T
 	fclose(aFile);
 }
 
-void point_iterate_and_store(TImageConfig* image, int x, int y, double Z_re, double Z_im, double c_re, double c_im, 
-	     Tuchar* img) {
-	int isInside = 1;
-	double color;
-	unsigned n;
+void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, double* dZim, double* dCre, 
+			   double* dCim, Tuchar* img) {
+
+	int bIsInside = 1;
+	double dColor;
+	unsigned uN;
+
 	/* iterate */
-	for(n=0; n<(*image).uiMaxIterations; ++n) {
-		double Z_re2 = Z_re*Z_re, Z_im2 = Z_im*Z_im;
-		if(Z_re2 + Z_im2 > 4) {
-			isInside = 0;
-			color = n;
+	for(uN = 0; uN < image->uiMaxIterations; ++uN) {
+		double dZre2 = (*dZre) * (*dZre), dZim2 = (*dZim) * (*dZim);
+		if(dZre2 + dZim2 > 4) {
+			bIsInside = 0;
+			dColor = uN;
 			break;
 		}
-		Z_im = 2*Z_re*Z_im + c_im;
-		Z_re = Z_re2 - Z_im2 + c_re;
+		*dZim = 2 * (*dZre) * (*dZim) + (*dCim);
+		*dZre = dZre2 - dZim2 + (*dCre);
 	}
-	if(isInside==1) { 
-		img[(x+y*(*image).iWidth)*3+2] = (Tuchar)(0); /* r */
-		img[(x+y*(*image).iWidth)*3+1] = (Tuchar)(0); /* g */
-		img[(x+y*(*image).iWidth)*3+0] = (Tuchar)(0); /* b */
+
+	if(bIsInside==1) { 
+		img[(*x + *y * image->iWidth) * 3 + 2] = (Tuchar)(0); /* r */
+		img[(*x + *y * image->iWidth) * 3 + 1] = (Tuchar)(0); /* g */
+		img[(*x + *y * image->iWidth) * 3 + 0] = (Tuchar)(0); /* b */
 	} else {
-		img[(x+y*(*image).iWidth)*3+2] = (Tuchar)(color / (*image).uiMaxIterations * 255);
-		img[(x+y*(*image).iWidth)*3+1] = (Tuchar)(color / (*image).uiMaxIterations * 255 / 2);
-		img[(x+y*(*image).iWidth)*3+0] = (Tuchar)(color / (*image).uiMaxIterations * 255 / 2);
+		img[(*x + *y * image->iWidth) * 3 + 2] = (Tuchar)(dColor / image->uiMaxIterations * 255);
+		img[(*x + *y * image->iWidth) * 3 + 1] = (Tuchar)(dColor / image->uiMaxIterations * 255 / 2);
+		img[(*x + *y * image->iWidth) * 3 + 0] = (Tuchar)(dColor / image->uiMaxIterations * 255 / 2);
 	}
 }
 
@@ -170,7 +173,7 @@ void computeSlice(TImageConfig* image, TSlice* mySlice, Tuchar* img) {
 			double dCre = image->dReMin + x * image->dReFactor;
 			double dZre = dCre, dZim = dCim;
 			/* iterate and store a points value */
-			point_iterate_and_store(image, x, y, dZre, dZim, dCre, dCim, img);
+			iterateAndStoreAPoint(image, &x, &y, &dZre, &dZim, &dCre, &dCim, img);
 		}
 	}
 }
