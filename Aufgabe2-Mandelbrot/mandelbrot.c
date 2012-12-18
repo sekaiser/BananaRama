@@ -176,7 +176,7 @@ Tuchar* allocateImageBuffer(int iImageWidth, int iImageHeight) {
 	return img;
 }
 
-void slave_recv(int rank, TImageConfig* image, sliceT* slice_dimensions, 
+void slave_recv(int* rank, TImageConfig* image, sliceT* slice_dimensions, 
 	Tuchar* transportbuffer) {
 
 	int slice_n;
@@ -184,7 +184,7 @@ void slave_recv(int rank, TImageConfig* image, sliceT* slice_dimensions,
 	for (;;) {
 		/* receive a new slice to calculate */
 		MPI_Recv(&slice_n, 1, MPI_INT, 0, 325, MPI_COMM_WORLD, &status);
-		printf("Receiving slice '%d' in process '%d'\n", slice_n, rank);
+		printf("Receiving slice '%d' in process '%d'\n", slice_n, *rank);
 		/* suicide signal */
 		if (slice_n < 0) {
 			MPI_Finalize();
@@ -198,15 +198,18 @@ void slave_recv(int rank, TImageConfig* image, sliceT* slice_dimensions,
 	}
 }
 
-void slave(int rank, TImageConfig* image) {
+void slave(int* rank, TImageConfig* image) {
 	/* reserving the transport buffer */
-	Tuchar* transportbuffer = allocateImageBuffer((*image).iWidth, (*image).iHeight);
+	Tuchar* buffer = allocateImageBuffer(image->iWidth, image->iHeight);
+
 	/* reserving a buffer for the slice dimensions */
-	sliceT slice_dimensions[(*image).iSlices];
+	sliceT slice_dimensions[image->iSlices];
+
 	/* initialize the slices */
-	initializeSlices((*image).iHeight, (*image).iSlices, slice_dimensions);
+	initializeSlices(image->iHeight, image->iSlices, slice_dimensions);
+
 	/* processing the slices */
-	slave_recv(rank, image, slice_dimensions, transportbuffer);
+	slave_recv(rank, image, slice_dimensions, buffer);
 }
 
 int mpi_slices_init(int mpiSize, int iN_SLICES, int* slice_cache) {
@@ -310,7 +313,7 @@ int main(int argc, char **argv) {
 	if(rank==0) {
 		master(iSize, &image);
 	} else {
-		slave(rank, &image);	
+		slave(&rank, &image);	
 	}
 	return 0;
 }
