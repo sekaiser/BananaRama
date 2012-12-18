@@ -165,20 +165,21 @@ void compute_slice(TImageConfig* image, sliceT mySlice, Tuchar* img) {
 	}
 }
 
-void initializeSlices(int iImageHeight, int iN_SLICES, sliceT* slice_dimensions) {
-	double average = (double)iImageHeight / iN_SLICES;
-	int rest = iImageHeight - (iN_SLICES*(int)average);
+void initializeSlices(int* iHeight, int* iSlices, sliceT* sliceDimensions) {
+
+	double dAverage = (double) *iHeight / *iSlices;
+	int iRest = *iHeight - (*iSlices * (int)dAverage);
+
 	/* computing the slice dimensions */
-	int slice_n;
-	int slice_start = 0;
-	for (slice_n=0; slice_n<iN_SLICES; slice_n++) {
-		int slice_end = slice_start + average;
-		if(slice_n==iN_SLICES-1) {
-			slice_end += rest;
+	int iSlice, iSliceStart = 0;
+	for (iSlice = 0; iSlice < *iSlices; iSlice++) {
+		int iSliceEnd = iSliceStart + dAverage;
+		if(iSlice == *iSlices - 1) {
+			iSliceEnd += iRest;
 		}
-		sliceT mySlice = {slice_start, slice_end};
-		slice_dimensions[slice_n] = mySlice;
-		slice_start = slice_end;
+		sliceT mySlice = {iSliceStart, iSliceEnd};
+		sliceDimensions[iSlice] = mySlice;
+		iSliceStart = iSliceEnd;
 	}
 }
 
@@ -219,13 +220,13 @@ void slave(int* rank, TImageConfig* image) {
 	Tuchar* buffer = allocateImageBuffer(image->iWidth, image->iHeight);
 
 	/* reserving a buffer for the slice dimensions */
-	sliceT slice_dimensions[image->iSlices];
+	sliceT sliceDimensions[image->iSlices];
 
 	/* initialize the slices */
-	initializeSlices(image->iHeight, image->iSlices, slice_dimensions);
+	initializeSlices(&(image->iHeight), &(image->iSlices), sliceDimensions);
 
 	/* processing the slices */
-	slave_recv(rank, image, slice_dimensions, buffer);
+	slave_recv(rank, image, sliceDimensions, buffer);
 }
 
 int mpi_slices_init(int mpiSize, int iN_SLICES, int* slice_cache) {
@@ -281,18 +282,18 @@ void mpi_slices_process(TImageConfig* image, int slice_n, sliceT* slice_dimensio
 void master(int mpiSize, TImageConfig* image) {
 	
 	/* reserving a buffer for the slice dimensions */
-	sliceT slice_dimensions[(*image).iSlices];
+	sliceT sliceDimensions[image->iSlices];
 	/* initialize the slices */
-	initializeSlices((*image).iHeight, (*image).iSlices, slice_dimensions);
+	initializeSlices(&(image->iHeight), &(image->iSlices), sliceDimensions);
 	/* reserving the transport buffer */
-	Tuchar* transportbuffer = allocateImageBuffer((*image).iWidth, (*image).iHeight);
+	Tuchar* transportbuffer = allocateImageBuffer(image->iWidth, image->iHeight);
 	/* reserving the output buffer */
-	Tuchar* out = allocateImageBuffer((*image).iWidth, (*image).iHeight);
+	Tuchar* out = allocateImageBuffer(image->iWidth, image->iHeight);
 	/* initialize MPI: send a slice to each slave */
 	int slice_cache[mpiSize];
-	int slice_n = mpi_slices_init(mpiSize, (*image).iSlices, slice_cache);
+	int slice_n = mpi_slices_init(mpiSize, image->iSlices, slice_cache);
 	/* process remaining slices */
-	mpi_slices_process(image, slice_n, slice_dimensions, slice_cache, transportbuffer,
+	mpi_slices_process(image, slice_n, sliceDimensions, slice_cache, transportbuffer,
 			   out);
 	/* finalize MPI */
 	MPI_Finalize();
