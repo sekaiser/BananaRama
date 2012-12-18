@@ -8,7 +8,7 @@ typedef unsigned char Tuchar;
 
 typedef struct {
 	int start, end;
-} sliceT;
+} TSlice;
 
 typedef struct {
 	int iWidth, iHeight, iSlices;
@@ -29,6 +29,16 @@ Tuchar* allocateTucharP(int* size) {
 	memset(tmp,0,sizeof(tmp));
 
 	return tmp;
+}
+
+Tuchar* allocateImageBuffer(int iImageWidth, int iImageHeight) {
+	Tuchar* img = (Tuchar*)malloc(3*iImageWidth*iImageHeight);
+	if(img==0) {
+		fprintf(stderr, "Out of memory!\n");
+		exit(1);
+	}
+	memset(img,0,sizeof(img));
+	return img;
 }
 
 Tuchar* getBmpFileHeader(int* filesize) {
@@ -151,21 +161,21 @@ void point_iterate_and_store(TImageConfig* image, int x, int y, double Z_re, dou
 	}
 }
 
-void compute_slice(TImageConfig* image, sliceT mySlice, Tuchar* img) {
+void computeSlice(TImageConfig* image, TSlice* mySlice, Tuchar* img) {
 	int y;
-	for(y=mySlice.start; y<mySlice.end; ++y) {
-		double c_im = (*image).dImMax - y*(*image).dImFactor;
+	for(y = mySlice->start; y < mySlice->end; ++y) {
+		double dCim = image->dImMax - y * image->dImFactor;
 		int x;
-	        for(x=0; x<(*image).iWidth; ++x) {
-			double c_re = (*image).dReMin + x*(*image).dReFactor;
-			double Z_re = c_re, Z_im = c_im;
+	        for(x=0; x < image->iWidth; ++x) {
+			double dCre = image->dReMin + x * image->dReFactor;
+			double dZre = dCre, dZim = dCim;
 			/* iterate and store a points value */
-			point_iterate_and_store(image, x, y, Z_re, Z_im, c_re, c_im, img);
+			point_iterate_and_store(image, x, y, dZre, dZim, dCre, dCim, img);
 		}
 	}
 }
 
-void initializeSlices(int* iHeight, int* iSlices, sliceT* sliceDimensions) {
+void initializeSlices(int* iHeight, int* iSlices, TSlice* sliceDimensions) {
 
 	double dAverage = (double) *iHeight / *iSlices;
 	int iRest = *iHeight - (*iSlices * (int)dAverage);
@@ -177,23 +187,13 @@ void initializeSlices(int* iHeight, int* iSlices, sliceT* sliceDimensions) {
 		if(iSlice == *iSlices - 1) {
 			iSliceEnd += iRest;
 		}
-		sliceT mySlice = {iSliceStart, iSliceEnd};
+		TSlice mySlice = {iSliceStart, iSliceEnd};
 		sliceDimensions[iSlice] = mySlice;
 		iSliceStart = iSliceEnd;
 	}
 }
 
-Tuchar* allocateImageBuffer(int iImageWidth, int iImageHeight) {
-	Tuchar* img = (Tuchar*)malloc(3*iImageWidth*iImageHeight);
-	if(img==0) {
-		fprintf(stderr, "Out of memory!\n");
-		exit(1);
-	}
-	memset(img,0,sizeof(img));
-	return img;
-}
-
-void slave_recv(int* rank, TImageConfig* image, sliceT* slice_dimensions, 
+void slave_recv(int* rank, TImageConfig* image, TSlice* slice_dimensions, 
 	Tuchar* transportbuffer) {
 
 	int slice_n;
@@ -209,7 +209,7 @@ void slave_recv(int* rank, TImageConfig* image, sliceT* slice_dimensions,
 		}
 		/* calculate requested slice */
 		printf("slice '%d' start-end: %d-%d\n", slice_n, slice_dimensions[slice_n].start, slice_dimensions[slice_n].end);
-		compute_slice(image, slice_dimensions[slice_n], transportbuffer);
+		computeSlice(image, &(slice_dimensions[slice_n]), transportbuffer);
 		/* send results back to master */
 		MPI_Ssend(transportbuffer, 3*((*image).iWidth)*((*image).iHeight), MPI_CHAR, 0, 327, MPI_COMM_WORLD);
 	}
@@ -220,7 +220,7 @@ void slave(int* rank, TImageConfig* image) {
 	Tuchar* buffer = allocateImageBuffer(image->iWidth, image->iHeight);
 
 	/* reserving a buffer for the slice dimensions */
-	sliceT sliceDimensions[image->iSlices];
+	TSlice sliceDimensions[image->iSlices];
 
 	/* initialize the slices */
 	initializeSlices(&(image->iHeight), &(image->iSlices), sliceDimensions);
@@ -229,9 +229,9 @@ void slave(int* rank, TImageConfig* image) {
 	slave_recv(rank, image, sliceDimensions, buffer);
 }
 
-int mpi_slices_init(int mpiSize, int iN_SLICES, int* slice_cache) {
+int mpi_slices_init(int* iSize, int iN_SLICES, int* slice_cache) {
 	int process, slice_n=0;
-	for (process = 1; process < mpiSize; process++) {
+	for (process = 1; process < *iSize; process++) {
 		/* generate Mandelbrot set in each process */
 		if(slice_n<iN_SLICES) {
 			printf("Sending slice '%d' to process '%d'\n", slice_n, process);
@@ -243,7 +243,7 @@ int mpi_slices_init(int mpiSize, int iN_SLICES, int* slice_cache) {
 	return slice_n;
 }
 
-void mpi_slices_process(TImageConfig* image, int slice_n, sliceT* slice_dimensions, 
+void mpi_slices_process(TImageConfig* image, int slice_n, TSlice* slice_dimensions, 
 			int* slice_cache, Tuchar* transportbuffer, Tuchar* out) {
 
 	int r_slice_n;
@@ -279,24 +279,31 @@ void mpi_slices_process(TImageConfig* image, int slice_n, sliceT* slice_dimensio
 	}
 }
 
-void master(int mpiSize, TImageConfig* image) {
+void master(int* iSize, TImageConfig* image) {
 	
 	/* reserving a buffer for the slice dimensions */
-	sliceT sliceDimensions[image->iSlices];
+	TSlice sliceDimensions[image->iSlices];
+
 	/* initialize the slices */
 	initializeSlices(&(image->iHeight), &(image->iSlices), sliceDimensions);
+
 	/* reserving the transport buffer */
 	Tuchar* transportbuffer = allocateImageBuffer(image->iWidth, image->iHeight);
+
 	/* reserving the output buffer */
 	Tuchar* out = allocateImageBuffer(image->iWidth, image->iHeight);
+
 	/* initialize MPI: send a slice to each slave */
-	int slice_cache[mpiSize];
-	int slice_n = mpi_slices_init(mpiSize, image->iSlices, slice_cache);
+	int slice_cache[*iSize];
+	int slice_n = mpi_slices_init(iSize, image->iSlices, slice_cache);
+
 	/* process remaining slices */
 	mpi_slices_process(image, slice_n, sliceDimensions, slice_cache, transportbuffer,
 			   out);
+
 	/* finalize MPI */
 	MPI_Finalize();
+
 	/* writing the Mandelbrot set to a bitmap file */
 	writeBmp(&(image->iWidth), &(image->iHeight), image->FileName, out);
 }
@@ -328,7 +335,7 @@ int main(int argc, char **argv) {
 
 	/* doing the work */
 	if(rank==0) {
-		master(iSize, &image);
+		master(&iSize, &image);
 	} else {
 		slave(&rank, &image);	
 	}
