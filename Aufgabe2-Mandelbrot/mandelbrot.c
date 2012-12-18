@@ -17,95 +17,111 @@ typedef struct {
 	char* FileName;
 } TImageConfig;
 
-Tuchar* allocateTucharP(int size) {
+Tuchar* allocateTucharP(int* size) {
 
-	Tuchar* tmp = (Tuchar*)malloc(size);
+	Tuchar* tmp = (Tuchar*)malloc(*size);
+
 	if(tmp==0) {
 		fprintf(stderr, "Out of memory!\n");
 		exit(1);
 	}
+
 	memset(tmp,0,sizeof(tmp));
+
 	return tmp;
 }
 
-Tuchar* bmp_get_fileheader(int filesize) {
+Tuchar* getBmpFileHeader(int* filesize) {
+
 	/* reserving some memory */
-	Tuchar* header = allocateTucharP(14);
+	int iMemory = 14;
+	Tuchar* pHeader = allocateTucharP(&iMemory);
+
 	/* setting the file header */
-	header[ 0] = 'B';
-	header[ 1] = 'M';
-	header[ 2] = (Tuchar)(filesize    );
-	header[ 3] = (Tuchar)(filesize>> 8);
-	header[ 4] = (Tuchar)(filesize>>16);
-	header[ 5] = (Tuchar)(filesize>>24);
-	header[ 6] = 0;
-	header[ 7] = 0;
-	header[ 8] = 0;
-	header[ 9] = 0;
-	header[10] = 54;
-	header[11] = 0;
-	header[12] = 0;
-	header[13] = 0;
-	return header;
+	pHeader[ 0] = 'B';
+	pHeader[ 1] = 'M';
+	pHeader[ 2] = (Tuchar)(*filesize    );
+	pHeader[ 3] = (Tuchar)(*filesize>> 8);
+	pHeader[ 4] = (Tuchar)(*filesize>>16);
+	pHeader[ 5] = (Tuchar)(*filesize>>24);
+	pHeader[ 6] = 0;
+	pHeader[ 7] = 0;
+	pHeader[ 8] = 0;
+	pHeader[ 9] = 0;
+	pHeader[10] = 54;
+	pHeader[11] = 0;
+	pHeader[12] = 0;
+	pHeader[13] = 0;
+
+	return pHeader;
 }
 
-Tuchar* bmp_get_infoheader(int iImageWidth, int iImageHeight) {
-	Tuchar* header = allocateTucharP(40);
+Tuchar* getBmpInfoHeader(int* iImageWidth, int* iImageHeight) {
+
+	/* reserving some memory */
+	int iMemory = 40;
+	Tuchar* pHeader = allocateTucharP(&iMemory);
+
         /* setting the info header */
-	header[ 0] = 40;
-	header[ 1] = 0;
-	header[ 2] = 0;
-	header[ 3] = 0;
-	header[ 4] = (Tuchar)( iImageWidth    );
-	header[ 5] = (Tuchar)( iImageWidth>> 8);
-	header[ 6] = (Tuchar)( iImageWidth>>16);
-	header[ 7] = (Tuchar)( iImageWidth>>24);
-	header[ 8] = (Tuchar)( iImageHeight    );
-	header[ 9] = (Tuchar)( iImageHeight>> 8);
-	header[10] = (Tuchar)( iImageHeight>>16);
-	header[11] = (Tuchar)( iImageHeight>>24);
-	header[12] = 1;
-	header[13] = 0;
-	header[14] = 24;
-	header[15] = 0;
-	return header;
+	pHeader[ 0] = 40;
+	pHeader[ 1] = 0;
+	pHeader[ 2] = 0;
+	pHeader[ 3] = 0;
+	pHeader[ 4] = (Tuchar)( *iImageWidth    );
+	pHeader[ 5] = (Tuchar)( *iImageWidth>> 8);
+	pHeader[ 6] = (Tuchar)( *iImageWidth>>16);
+	pHeader[ 7] = (Tuchar)( *iImageWidth>>24);
+	pHeader[ 8] = (Tuchar)( *iImageHeight    );
+	pHeader[ 9] = (Tuchar)( *iImageHeight>> 8);
+	pHeader[10] = (Tuchar)( *iImageHeight>>16);
+	pHeader[11] = (Tuchar)( *iImageHeight>>24);
+	pHeader[12] = 1;
+	pHeader[13] = 0;
+	pHeader[14] = 24;
+	pHeader[15] = 0;
+
+	return pHeader;
 }
 
-FILE* bmp_get_filehandle(const char* filename) {
+FILE* getBmpFileHandler(const char* filename) {
+
 	FILE* tmp = fopen(filename,"wb");
+
 	if(tmp==0) {
 		fprintf(stderr, "Can not write to file '%s'!\n", filename);
 		exit(1);
 	}
+
 	return tmp;
 }
 
-void bmp_write_output(int iImageWidth, int iImageHeight, const char* FileName, 
-		 const Tuchar* img) {
+void writeBmp(int* iImageWidth, int* iImageHeight, const char* FileName, const Tuchar* pImage) {
+
+	int iLoop;
 
 	/* computing the filesize */
- 	int filesize = 54 + 3*iImageWidth*iImageHeight;
+ 	int iFileSize = 54 + 3 * (*iImageWidth) * (*iImageHeight);
+
 	/* file header */
-	Tuchar* fileheader = bmp_get_fileheader(filesize);
-	Tuchar* infoheader = bmp_get_infoheader(iImageWidth, iImageHeight);
+	Tuchar* pFileHeader = getBmpFileHeader(&iFileSize);
+	Tuchar* pInfoHeader = getBmpInfoHeader(iImageWidth, iImageHeight);
 	Tuchar bmppad[3] = {0,0,0};
 
 	/* open the file */
-	FILE* f = bmp_get_filehandle(FileName);
+	FILE* aFile = getBmpFileHandler(FileName);
 	/* write the file header */
-	fwrite(fileheader,1,14,f);
+	fwrite(pFileHeader, 1, 14, aFile);
 	/* write the info header */
-	fwrite(infoheader,1,40,f);
+	fwrite(pInfoHeader, 1, 40, aFile);
 
 	/* write the image contents */
-	int i;
-	for(i=0; i<iImageHeight; i++) {
-	    fwrite(img+(iImageWidth*(iImageHeight-i-1)*3),3,iImageWidth,f);
-	    fwrite(bmppad,1,(4-(iImageWidth*3)%4)%4,f);
+	for(iLoop = 0; iLoop < *iImageHeight; iLoop++) {
+	    fwrite(pImage + (*iImageWidth * (*iImageHeight - iLoop - 1) * 3), 3, *iImageWidth, aFile);
+	    fwrite(bmppad, 1, (4 - (*iImageWidth * 3) % 4) % 4, aFile);
 	}
 	
 	/* close the file */
-	fclose(f);
+	fclose(aFile);
 }
 
 void point_iterate_and_store(TImageConfig* image, int x, int y, double Z_re, double Z_im, double c_re, double c_im, 
@@ -281,7 +297,7 @@ void master(int mpiSize, TImageConfig* image) {
 	/* finalize MPI */
 	MPI_Finalize();
 	/* writing the Mandelbrot set to a bitmap file */
-	bmp_write_output((*image).iWidth, (*image).iHeight, (*image).FileName, out);
+	writeBmp(&(image->iWidth), &(image->iHeight), image->FileName, out);
 }
 
 /*
