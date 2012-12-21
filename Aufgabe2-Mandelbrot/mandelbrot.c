@@ -4,6 +4,8 @@
 #include <fcntl.h>
 #include <mpi.h>
 
+#define BUFFER_SIZE (100)
+
 typedef unsigned char Tuchar;
 
 typedef struct {
@@ -67,14 +69,14 @@ Tuchar* getBmpInfoHeader(int* iImageWidth, int* iImageHeight) {
 	pHeader[ 1] = 0;
 	pHeader[ 2] = 0;
 	pHeader[ 3] = 0;
-	pHeader[ 4] = (Tuchar)( *iImageWidth    );
-	pHeader[ 5] = (Tuchar)( *iImageWidth>> 8);
-	pHeader[ 6] = (Tuchar)( *iImageWidth>>16);
-	pHeader[ 7] = (Tuchar)( *iImageWidth>>24);
-	pHeader[ 8] = (Tuchar)( *iImageHeight    );
-	pHeader[ 9] = (Tuchar)( *iImageHeight>> 8);
-	pHeader[10] = (Tuchar)( *iImageHeight>>16);
-	pHeader[11] = (Tuchar)( *iImageHeight>>24);
+	pHeader[ 4] = (Tuchar)(  *iImageWidth     );
+	pHeader[ 5] = (Tuchar)(  *iImageWidth >> 8);
+	pHeader[ 6] = (Tuchar)( *iImageWidth >> 16);
+	pHeader[ 7] = (Tuchar)( *iImageWidth >> 24);
+	pHeader[ 8] = (Tuchar)( *iImageHeight     );
+	pHeader[ 9] = (Tuchar)( *iImageHeight >> 8);
+	pHeader[10] = (Tuchar)(*iImageHeight >> 16);
+	pHeader[11] = (Tuchar)(*iImageHeight >> 24);
 	pHeader[12] = 1;
 	pHeader[13] = 0;
 	pHeader[14] = 24;
@@ -109,8 +111,10 @@ void writeBmp(int* iImageWidth, int* iImageHeight, const char* FileName, const T
 
 	/* open the file */
 	FILE* aFile = getBmpFileHandler(FileName);
+
 	/* write the file header */
 	fwrite(pFileHeader, 1, 14, aFile);
+
 	/* write the info header */
 	fwrite(pInfoHeader, 1, 40, aFile);
 
@@ -130,6 +134,7 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 	int bIsInside = 1;
 	double dColor;
 	unsigned uN;
+	int iPosition;
 
 	/* iterate */
 	for(uN = 0; uN < image->uiMaxIterations; ++uN) {
@@ -142,15 +147,17 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 		*dZim = 2 * (*dZre) * (*dZim) + (*dCim);
 		*dZre = dZre2 - dZim2 + (*dCre);
 	}
-
+	
+	iPosition = (*x + *y * image->iWidth) * 3;
 	if(bIsInside==1) { 
-		img[(*x + *y * image->iWidth) * 3 + 2] = (Tuchar)(0); /* r */
-		img[(*x + *y * image->iWidth) * 3 + 1] = (Tuchar)(0); /* g */
-		img[(*x + *y * image->iWidth) * 3 + 0] = (Tuchar)(0); /* b */
+	  img[  iPosition] = (Tuchar)(0); /* b */
+	  img[++iPosition] = (Tuchar)(0); /* g */
+	  img[++iPosition] = (Tuchar)(0); /* r */
 	} else {
-		img[(*x + *y * image->iWidth) * 3 + 2] = (Tuchar)(dColor / image->uiMaxIterations * 255);
-		img[(*x + *y * image->iWidth) * 3 + 1] = (Tuchar)(dColor / image->uiMaxIterations * 255 / 2);
-		img[(*x + *y * image->iWidth) * 3 + 0] = (Tuchar)(dColor / image->uiMaxIterations * 255 / 2);
+	  dColor = dColor / image->uiMaxIterations * 255;
+	  img[  iPosition] = (Tuchar)(dColor / 2);
+	  img[++iPosition] = (Tuchar)(dColor / 2);
+	  img[++iPosition] = (Tuchar)dColor;
 	}
 }
 
@@ -311,13 +318,118 @@ void master(int* iSize, TImageConfig* image) {
 /*
  * the main routine
  */
-int main(int argc, char **argv) {
+int main2(int argc, char **argv) {
 
-	/* initialize MPI */
-	int rank, iSize;
-	MPI_Init(&argc, &argv);
-        MPI_Comm_size(MPI_COMM_WORLD, &iSize);
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  /* initialize MPI */
+  int rank, iSize;
+  MPI_Init(&argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &iSize);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  /* move this stuff to a dialog */
+  TImageConfig image;
+  image.iWidth = 640;
+  image.iHeight = 480;
+  image.uiMaxIterations = 120;
+  image.iSlices = 11;
+  image.dReMin = -2.0;
+  image.dReMax = 1.0;
+  image.dImMin = -1.2;
+  image.dImMax = image.dImMin + (image.dReMax - image.dReMin) * image.iHeight / image.iWidth;
+  image.dReFactor = (image.dReMax - image.dReMin) / (image.iWidth - 1);
+  image.dImFactor = (image.dImMax - image.dImMin) / (image.iHeight - 1);
+  image.FileName = "mandelbrot.bmp";
+  
+  /* doing the work */
+  if(rank==0) {
+    master(&iSize, &image);
+  } else {
+    slave(&rank, &image);	
+  }
+  
+  return 0;
+}
+
+void setParam(char *message, char *formatSpecifier, void **param, 
+	      char *buffer, void **stdVal) {
+
+  printf("%s: ", message);
+  fgets(buffer, BUFFER_SIZE - 1, stdin);
+  if (buffer[0] == ' ' | buffer[0] == '\n') {
+    *param = *stdVal;
+  } else {
+    sscanf(buffer, formatSpecifier, param);
+  }
+}
+
+void setStringParam(char *message, char *formatSpecifier, char **param, 
+		    char *buffer, char **stdVal) {
+
+  int i;
+ 
+  printf("%s: ", message);
+  fgets(buffer, BUFFER_SIZE - 1, stdin);
+  for (i = 0; i < BUFFER_SIZE; i++) {
+    if (buffer[i] == '\n') {
+      buffer[i] = '\0';
+      break;
+    }
+  }
+
+  if (buffer[0] == ' ' | buffer[0] == '\0') {
+    *param = *stdVal;
+  } else {
+    *param = (char*)malloc(++i);
+    for(int j = 0; j < i; j++) {
+      (*param)[j] = buffer[j];
+    }
+  }
+
+  printf("%s", *param);
+}
+
+void dialog(TImageConfig* config, TImageConfig* std) {
+  char buffer[BUFFER_SIZE];
+  printf("Welcome to MandelbrotApp!\n");
+  printf("===================================================\n");
+  printf("Please specify the some parameters in order\n");
+  printf("to run the application. If you do not specify a\n");
+  printf("value the default value will be taken. The default");
+  printf("value is written in paranthesis.");
+  printf("\n");
+  printf("\n");
+  
+  setParam("Set x-length of picture (640): ", "%d", (void **)&(config->iWidth), buffer, (void **)&(std->iWidth));
+  setParam("Set y-length of picture (480): ", "%d", (void **)&(config->iHeight), buffer, (void **)&(std->iHeight));
+  setParam("Set maximum number of iteartions (120): ", "%d", (void **)&(config->uiMaxIterations), buffer, (void **)&(std->uiMaxIterations));
+  setParam("Set the number of slices to compute (10): ", "%d", (void **)&(config->iSlices), buffer, (void **)&(std->iSlices));
+  printf("\n");
+  printf("Now you need to specify the plane dimension.\n");
+  setParam("Set minimum value of real part (-2.0): ", "%lf", (void **)&(config->dReMin), buffer, (void **)&(std->dReMin));
+  setParam("Set maximum value of real part (1): ", "%lf", (void **)&(config->dReMax), buffer, (void **)&(std->dReMax));
+  setParam("Set minimum value of imaginary part (-1.2): ", "%lf", (void **)&(config->dImMin), buffer, (void **)&(std->dImMin));
+  config->dImMax = std->dImMax;
+  config->dReFactor = std->dReFactor;
+  config->dImFactor = std->dImFactor;
+  setStringParam("Set filename (mandelbrot.bmp): ", "%s", (char **)&(config->FileName), buffer, (char **)&(std->FileName));
+}
+
+void configTest(TImageConfig *config) {
+  printf("x: %d\n", config->iWidth);
+  printf("y: %d\n", config->iHeight);
+  printf("maxIter: %d\n", config->uiMaxIterations);
+  printf("#Slices: %d\n", config->iSlices);
+  printf("minReal: %lf\n", config->dReMin);
+  printf("maxReal: %lf\n", config->dReMax);
+  printf("minImaginary: %lf\n", config->dImMin);
+  printf("maxImaginary: %lf\n", config->dImMax);
+  printf("factor real: %lf\n", config->dReFactor);
+  printf("factor imaginary: %f\n", config->dImFactor);
+  printf("filename: %s\n", config->FileName);
+}
+
+int main(int argc, char **argv) {
+  TImageConfig test;
 
 	/* move this stuff to a dialog */
 	TImageConfig image;
@@ -333,11 +445,8 @@ int main(int argc, char **argv) {
 	image.dImFactor = (image.dImMax - image.dImMin) / (image.iHeight - 1);
 	image.FileName = "mandelbrot.bmp";
 
-	/* doing the work */
-	if(rank==0) {
-		master(&iSize, &image);
-	} else {
-		slave(&rank, &image);	
-	}
+	dialog(&test, &image);
+	
+	configTest(&test);
 	return 0;
 }
