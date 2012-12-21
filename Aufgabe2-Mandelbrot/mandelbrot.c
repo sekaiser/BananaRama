@@ -332,16 +332,175 @@ void finalizeConfig(TImageConfig* image) {
 
 }
 
-void bestpictureConfig(TImageConfig* image) {
+void bestpictureConfig(TImageConfig* config) {
 
-	image->iWidth = 800;
-	image->iHeight= 600;
-	image->uiMaxIterations = 255;
-	image->dReMin = -1.50496875;
-	image->dReMax = -1.4174687499999374;
-	image->dImMin = -0.017578125000000014;
-	image->FileName = "mandelbrot.bmp";
+	config->iWidth = 800;
+	config->iHeight= 600;
+	config->uiMaxIterations = 255;
+	config->dReMin = -1.50496875;
+	config->dReMax = -1.4174687499999374;
+	config->dImMin = -0.017578125000000014;
+	config->FileName = "mandelbrot.bmp";
 
+}
+
+void setParam(char *message, char *formatSpecifier, void **param,
+	      char *buffer, void **stdVal) {
+
+	printf("%s: ", message);
+	/* TODO: add precompiler statement for buffer size */
+  	fgets(buffer, 100 - 1, stdin);
+  	if ((buffer[0] == ' ') | (buffer[0] == '\n')) {
+    		*param = *stdVal;
+  	} else {
+    		sscanf(buffer, formatSpecifier, param);
+  	}
+}
+
+void setStringParam(char *message, char **param, char *buffer, char **stdVal) {
+
+  	int i;
+ 
+	/* TODO: add precompiler statement for buffer size */
+  	printf("%s: ", message);
+  	fgets(buffer, 100 - 1, stdin);
+  	for (i = 0; i < 100; i++) {
+    		if (buffer[i] == '\n') {
+      			buffer[i] = '\0';
+      			break;
+    		}
+  	}
+
+  	if ((buffer[0] == ' ') | (buffer[0] == '\0')) {
+    		*param = *stdVal;
+  	} else {
+    		*param = (char*)malloc(++i);
+		int j;
+    		for(j = 0; j < i; j++) {
+      			(*param)[j] = buffer[j];
+    		}
+  	}
+
+  	printf("%s", *param);
+}
+
+void dialog(TImageConfig* config) {
+	/* TODO: write allocation method or add a precompiler statement */
+  	char buffer[100];
+	/* TODO: move to printDialogHeader() */
+  	printf("Welcome to MandelbrotApp!\n");
+  	printf("===================================================\n");
+  	printf("Please specify the some parameters in order\n");
+  	printf("to run the application. If you do not specify a\n");
+ 	printf("value the default value will be taken. The default");
+	printf("value is written in paranthesis.");
+	printf("\n");
+	printf("\n");
+  
+	/* TODO: add precompiler statements for default values */
+	setParam("Set x-length of picture (640): ", "%d", (void **)&(config->iWidth), buffer, (void**)640);
+	setParam("Set y-length of picture (480): ", "%d", (void **)&(config->iHeight), buffer, (void **)480);
+	setParam("Set maximum number of iteartions (120): ", "%d", (void **)&(config->uiMaxIterations), buffer, (void **)120);
+	setParam("Set the number of slices to compute (10): ", "%d", (void **)&(config->iSlices), buffer, (void **)11);
+	printf("\n");
+	printf("Now you need to specify the plane dimension.\n");
+	setParam("Set minimum value of real part (-2.0): ", "%lf", (void **)&(config->dReMin), buffer, (void **)-2);
+	setParam("Set maximum value of real part (1): ", "%lf", (void **)&(config->dReMax), buffer, (void **)1);
+	double dTmp = -1.2;
+	setParam("Set minimum value of imaginary part (-1.2): ", "%lf", (void **)&(config->dImMin), buffer, (void **)&dTmp);
+
+	/* we do compute this values automatically, so no need to set them here
+	   config->dImMax = std->dImMax;
+	   config->dReFactor = std->dReFactor;
+	   config->dImFactor = std->dImFactor;
+	 */
+
+	setStringParam("Set filename (mandelbrot.bmp): ", (char **)&(config->FileName), buffer, (char **)"mandelbrot.bmp");
+}
+
+void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
+
+	int iIndex, bDialogFlag = 0, bBestPicFlag = 0;
+	struct option oLongOptions[] = {
+		/* These options set a flag. */
+		{"dialog", 	no_argument,       &bDialogFlag, 	'd'},
+		{"bestpic",	no_argument,	   &bBestPicFlag, 	'p'},
+		/* These options don't set a flag.
+		   We distinguish them by their indices. */
+		{"width",     	required_argument,      0, 'w'},
+		{"height",  	required_argument,      0, 'h'},
+		{"n",  		required_argument, 	0, 'n'},
+		{"immin",  	required_argument, 	0, 'a'},
+		/* skipping one indice in order be able to improve later */
+		{"remin",	required_argument,	0, 'i'},
+		{"remax",	required_argument,	0, 'j'},
+		{"filename",    required_argument, 	0, 'f'},
+               	{0, 0, 0, 0}
+	};
+
+	/* we will write directly to the config in order to prevent more memory allocations */ 
+	while (1) {
+		/* getopt_long stores the option index here. */
+		int iOptionIndex = 0;
+		iIndex = getopt_long (argc, argv, "dpw:h:n:a:i:j:f:", oLongOptions, &iOptionIndex);
+
+		/* Detect the end of the options. */
+		if (iIndex == -1)
+			break;
+     
+		switch (iIndex) {
+             		case 'd':
+				bDialogFlag = 1;
+               			break;
+			case 'p':
+				bBestPicFlag = 1;
+				break;
+             		case 'w':
+				config->iWidth = atoi(optarg);
+				/* TODO: print error if <0 */
+               			break;
+             		case 'h':
+				config->iHeight = atoi(optarg);
+				/* TODO: print error if <0 */
+               			break;
+             		case 'n':
+				config->uiMaxIterations = (unsigned int) atoi(optarg);
+				/* TODO: print error if <0 */
+				break;
+			case 'a':
+				config->dImMin = atof(optarg);
+				break;
+			case 'i':
+				config->dReMin = atof(optarg);
+				break;
+			case 'j':
+				config->dReMax = atof(optarg);
+				break;
+			case 'f':
+				strcpy(config->FileName, optarg);
+				/* TODO: print error if =="" */
+				break;
+             		case '?':
+               			/* getopt_long already printed an default error message. */
+               			break;
+             		default:
+				/* when does this get called? maybe if no parameter is set? */
+				/* TODO: print usage information!? */
+               			exit(1);
+		}
+	}
+
+	if(bDialogFlag == 1 && bBestPicFlag == 1) {
+		/* TODO: print error msg or do something */
+	}
+
+	if(bDialogFlag == 1){
+		
+	}
+	
+	if(bBestPicFlag == 1) {
+		bestpictureConfig(config);
+	}
 }
 
 /*
@@ -349,13 +508,17 @@ void bestpictureConfig(TImageConfig* image) {
  */
 int main(int argc, char **argv) {
 
+	/* TODO: only the master shall handle the config and distribute it to the slaves */
+
 	/* initialize a default config */
 	TImageConfig image;
 	initializeConfig(&image);
 
-	bestpictureConfig(&image);
+	/* parse command line parameters and update the config */
+	parseCommandLineParameters(argc, argv, &image);
 
-	/* finalize config - automatic computation of dynamic values */
+	/* finalize config - automatic computation of dynamic 
+	   configuration values */
 	finalizeConfig(&image);
 
 	/* initialize MPI */
