@@ -332,6 +332,18 @@ void finalizeConfig(TImageConfig* image) {
 
 }
 
+void bestpictureConfig(TImageConfig* image) {
+
+	image->iWidth = 800;
+	image->iHeight= 600;
+	image->uiMaxIterations = 255;
+	image->dReMin = -1.50496875;
+	image->dReMax = -1.4174687499999374;
+	image->dImMin = -0.017578125000000014;
+	image->FileName = "mandelbrot.bmp";
+
+}
+
 /*
  * the main routine
  */
@@ -341,10 +353,9 @@ int main(int argc, char **argv) {
 	TImageConfig image;
 	initializeConfig(&image);
 
-	/* parse the command line parameters */
+	bestpictureConfig(&image);
 
-
-	/* finalize config */
+	/* finalize config - automatic computation of dynamic values */
 	finalizeConfig(&image);
 
 	/* initialize MPI */
