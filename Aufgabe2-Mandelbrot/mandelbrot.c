@@ -148,11 +148,11 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 	if(bIsInside==1) { 
 		img[iPosition] 	 = (Tuchar)(0); /* b */
 		img[++iPosition] = (Tuchar)(0); /* g */
-		img[++iPosition] = (Tuchar)(0); /* r */
+		img[++iPosition] = (Tuchar)(255); /* r */
 	} else {
-		dColor = dColor / image->uiMaxIterations * 255;
-		img[iPosition]   = (Tuchar)(dColor / 2);
-		img[++iPosition] = (Tuchar)(dColor / 2);
+		/*dColor = dColor / image->uiMaxIterations * 255;*/
+		img[iPosition]   = (Tuchar)(0);
+		img[++iPosition] = (Tuchar)(0);
 		img[++iPosition] = (Tuchar) dColor;
 	}
 }
@@ -410,9 +410,9 @@ void bestpictureConfig(TImageConfig* config) {
 	config->iWidth = 800;
 	config->iHeight= 600;
 	config->uiMaxIterations = 255;
-	config->dReMin = -1.50496875;
-	config->dReMax = -1.4174687499999374;
-	config->dImMin = -0.017578125000000014;
+	config->dReMin = -0.3871904296875;
+	config->dReMax = -0.3858232421874879;
+	config->dImMin = 0.6238156738281248;
 	config->FileName = "mandelbrot.bmp";
 
 }
