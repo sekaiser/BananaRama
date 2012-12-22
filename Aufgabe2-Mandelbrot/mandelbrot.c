@@ -234,58 +234,38 @@ void slaveReceiveSlices(TImageConfig* image, TSlice* sliceDimensions, Tuchar* bu
 
 void slaveReceiveConfig(TImageConfig* config) {
 	
-	/* creating the transport buffer */
-	int iBuffer;
-	unsigned int uiBuffer;
-	double dBuffer;
 	/* get iWidth */
-	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->iWidth = iBuffer;
+	MPI_Recv(&(config->iWidth), 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get iHeight */
-	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->iHeight = iBuffer;
+	MPI_Recv(&(config->iHeight), 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get uiMaxIterations */
-	MPI_Recv(&uiBuffer, 	1, MPI_UNSIGNED, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->uiMaxIterations = uiBuffer;
+	MPI_Recv(&(config->uiMaxIterations), 	1, MPI_UNSIGNED, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get iSlices */
-	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->iSlices = iBuffer;
+	MPI_Recv(&(config->iSlices), 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get iRed */
-	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->iRed = iBuffer;
+	MPI_Recv(&(config->iRed), 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get iGreen */
-	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->iGreen = iBuffer;
+	MPI_Recv(&(config->iGreen), 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get iBlue */
-	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->iBlue = iBuffer;
+	MPI_Recv(&(config->iBlue), 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get iRedBg */
-	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->iRedBg = iBuffer;
+	MPI_Recv(&(config->iRedBg), 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get iGreenBg */
-	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->iGreenBg = iBuffer;
+	MPI_Recv(&(config->iGreenBg), 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get iBlueBg */
-	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->iBlueBg = iBuffer;
+	MPI_Recv(&(config->iBlueBg), 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get dReMin */
-	MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->dReMin = dBuffer;
+	MPI_Recv(&(config->dReMin), 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get dReMax */	
-	MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->dReMax = dBuffer;
+	MPI_Recv(&(config->dReMax), 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get dImMin */
-	MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->dImMin = dBuffer;
+	MPI_Recv(&(config->dImMin), 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get dImMax */
-	 MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->dImMax = dBuffer;
+	 MPI_Recv(&(config->dImMax), 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get dReFactor */
-	MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->dReFactor = dBuffer;
+	MPI_Recv(&(config->dReFactor), 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	/* get dImFactor */
-	MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->dImFactor = dBuffer;
+	MPI_Recv(&(config->dImFactor), 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 }
 
