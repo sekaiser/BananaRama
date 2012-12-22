@@ -1,3 +1,9 @@
+/*
+	mandelbrot generator in mpi-conform C
+	(c) 2012 by R. Fruth, S. Kaiser, E. Kuhnt
+	
+	for details please see the attached readme
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -347,6 +353,9 @@ int initializeProcesses(int* iSize, int* iSlices, int* iSliceCache) {
 			MPI_Ssend(&iSlice, 1, MPI_INT, iProcess, 325, MPI_COMM_WORLD);
 			iSliceCache[iProcess] = iSlice;
 			iSlice++;
+		} else {
+			int kill = -1;
+			MPI_Ssend(&kill, 1, MPI_INT, iProcess, 325, MPI_COMM_WORLD);
 		}
 	}
 	return iSlice;
@@ -470,7 +479,44 @@ void bestpictureConfig(TImageConfig* config) {
 
 void dialog(TImageConfig* config) {
 
-	printf("here would the dialog start\n");	
+	printf(	"mandelbrot generator in mpi-conform C\n"
+	       	"(c) 2012 R. Fruth, S. Kaiser & E. Kuhnt\n\n"
+		"configuration dialog\n\n"
+	);
+
+	int iReturn;
+	do {
+		printf("Please specify the picture width (current: %d):\n", config->iWidth);
+		iReturn = scanf("%d", &(config->iWidth));
+	} while (iReturn!=1);
+	printf("Please specify the picture height (current: %d):\n", config->iHeight);
+	scanf("%d", &(config->iHeight));
+	printf("Please specify the number of slices the picture will be splitted to (current: %d):\n", config->iSlices);
+	scanf("%d", &(config->iSlices));
+	printf("Please specify the iteration maximum (current: %d):\n", config->uiMaxIterations);
+	scanf("%d", &(config->uiMaxIterations));
+	printf("Please specify the imaginary minimum value (current: %f):\n", config->dImMin);
+	scanf("%lf", &(config->dImMin));
+	printf("Please specify the real minimum value (current: %f):\n", config->dReMin);
+	scanf("%lf", &(config->dReMin));	
+	printf("Please specify the real maximum value (current: %f):\n", config->dReMax);
+	scanf("%lf", &(config->dReMax));
+	printf("Please specify the mandelbrot set red value (current: %d):\n", config->iRed);
+	scanf("%d", &(config->iRed));
+	printf("Please specify the mandelbrot set green value (current: %d):\n", config->iGreen);
+	scanf("%d", &(config->iGreen));
+	printf("Please specify the mandelbrot set blue value (current: %d):\n", config->iBlue);
+	scanf("%d", &(config->iBlue));
+	printf("Please specify the background red value (current: %d):\n", config->iRedBg);
+	scanf("%d", &(config->iRedBg));
+	printf("Please specify the background green value (current: %d):\n", config->iGreenBg);
+	scanf("%d", &(config->iGreenBg));
+	printf("Please specify the background blue value (current: %d):\n", config->iBlueBg);
+	scanf("%d", &(config->iBlueBg));
+	/*
+	printf("Please specify the filename (current: %s):\n", config->FileName);
+	scanf("%s", config->FileName);
+	*/	
 }
 
 void printUsageInformation() {
@@ -504,11 +550,16 @@ void printUsageInformation() {
 	exit(0);
 }
 
+void underflowCheckInteger(int* iInteger, char* cLParam, char* cSParam){
+	if(*iInteger < 0) {
+		fprintf(stderr, "ERROR: You may not set a negative value for %s / %s !\n", cLParam, cSParam);
+		exit(1);
+	}
+}
 void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 
 	int iIndex, bDialogFlag = 0, bBestPicFlag = 0;
 
-	/* TODO: extract underflow test */
 	/* we will write directly to the config in order to prevent more memory allocations */ 
 	while (1) {
 		/* getopt_long stores the option index here. */
@@ -553,17 +604,11 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 				break;
              		case 'w':
 				config->iWidth = atoi(optarg);
-				if(config->iWidth < 0) {
-					fprintf(stderr, "ERROR: You may not set a negative value for --width / -w !\n");
-					exit(1);
-				}
+				underflowCheckInteger(&(config->iWidth), "--width", "-w");
                			break;
              		case 'h':
 				config->iHeight = atoi(optarg);
-				if(config->iHeight < 0) {
-					fprintf(stderr, "ERROR: You may not set a negative value for --height / -h !\n");
-					exit(1);
-				}				
+				underflowCheckInteger(&(config->iHeight), "--height", "-h");
                			break;
              		case 'n':
 				/* prevent unsinged underflow */
@@ -587,52 +632,31 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 				break;
 			case 'r':
 				config->iRed = atoi(optarg);
-				if(config->iRed < 0) {
-					fprintf(stderr, "ERROR: You may not set a negative value for --red / -r !\n");
-					exit(1);
-				}
+				underflowCheckInteger(&(config->iRed), "--red", "-r");
 				break;
 			case 'g':
 				config->iGreen = atoi(optarg);
-				if(config->iGreen < 0) {
-					fprintf(stderr, "ERROR: You may not set a negative value for --green / -g !\n");
-					exit(1);
-				}
+				underflowCheckInteger(&(config->iGreen), "--green", "-g");
 				break;
 			case 'b':
 				config->iBlue = atoi(optarg);
-				if(config->iBlue < 0) {
-					fprintf(stderr, "ERROR: You may not set a negative value for --blue / -b !\n");
-					exit(1);
-				}
+				underflowCheckInteger(&(config->iBlue), "--blue", "-b");
 				break;
 			case 'x':
 				config->iRedBg = atoi(optarg);
-				if(config->iRedBg < 0) {
-					fprintf(stderr, "ERROR: You may not set a negative value for --redBg / -x !\n");
-					exit(1);
-				}
+				underflowCheckInteger(&(config->iRedBg), "--redBg", "-x");
 				break;
 			case 'y':
 				config->iGreenBg = atoi(optarg);
-				if(config->iGreenBg < 0) {
-					fprintf(stderr, "ERROR: You may not set a negative value for --greenBg / -y !\n");
-					exit(1);
-				}
+				underflowCheckInteger(&(config->iGreenBg), "--greenBg", "-y");
 				break;
 			case 'z':
 				config->iBlueBg = atoi(optarg);
-				if(config->iBlueBg < 0) {
-					fprintf(stderr, "ERROR: You may not set a negative value for --blueBg / -z !\n");
-					exit(1);
-				}
+				underflowCheckInteger(&(config->iBlueBg), "--blueBg", "-z");
 				break;
 			case 's':
 				config->iSlices = atoi(optarg);
-				if(config->iSlices < 0) {
-					fprintf(stderr, "ERROR: You may not set a negative value for --slices / -s !\n");
-					exit(1);
-				}
+				underflowCheckInteger(&(config->iSlices), "--slices", "-s");
 				break;
 			case 'u':
 				printUsageInformation();
