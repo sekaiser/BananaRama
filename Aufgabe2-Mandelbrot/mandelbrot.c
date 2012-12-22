@@ -189,7 +189,7 @@ void initializeSlices(int* iHeight, int* iSlices, TSlice* sliceDimensions) {
 	}
 }
 
-void slaveReceive(int* rank, TImageConfig* image, TSlice* sliceDimensions, Tuchar* buffer) {
+void slaveReceiveSlices(int* rank, TImageConfig* image, TSlice* sliceDimensions, Tuchar* buffer) {
 
 	int iSlice;
 	MPI_Status status;
@@ -214,20 +214,90 @@ void slaveReceive(int* rank, TImageConfig* image, TSlice* sliceDimensions, Tucha
 	}
 }
 
-void slave(int* rank, TImageConfig* image) {
+void slaveReceiveConfig(TImageConfig* config) {
+	
+	/* creating the transport buffer */
+	int iBuffer;
+	unsigned int uiBuffer;
+	double dBuffer;
+	/* get iWidth */
+	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->iWidth = iBuffer;
+	/* get iHeight */
+	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->iHeight = iBuffer;
+	/* get uiMaxIterations */
+	MPI_Recv(&uiBuffer, 	1, MPI_UNSIGNED, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->uiMaxIterations = uiBuffer;
+	/* get iSlices */
+	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->iSlices = iBuffer;	
+	/* get dReMin */
+	MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->dReMin = dBuffer;
+	/* get dReMax */	
+	MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->dReMax = dBuffer;
+	/* get dImMin */
+	MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->dImMin = dBuffer;
+	/* get dImMax */
+	 MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->dImMax = dBuffer;
+	/* get dReFactor */
+	MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->dReFactor = dBuffer;
+	/* get dImFactor */
+	MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->dImFactor = dBuffer;
 
-	int iImgSize = 3 * image->iWidth * image->iHeight;
+}
+
+void slave(int* rank) {
+
+	/* get the config */
+	TImageConfig image;
+	slaveReceiveConfig(&image);
+	
+	/* reserving a buffer for the slice dimensions */
+	TSlice sliceDimensions[image.iSlices];
+
 	/* reserving the transport buffer */
+	int iImgSize = 3 * image.iWidth * image.iHeight;	
 	Tuchar* buffer = allocateTucharP(&iImgSize);
 
-	/* reserving a buffer for the slice dimensions */
-	TSlice sliceDimensions[image->iSlices];
-
 	/* initialize the slices */
-	initializeSlices(&(image->iHeight), &(image->iSlices), sliceDimensions);
+	initializeSlices(&(image.iHeight), &(image.iSlices), sliceDimensions);
 
 	/* processing the slices */
-	slaveReceive(rank, image, sliceDimensions, buffer);
+	slaveReceiveSlices(rank, &image, sliceDimensions, buffer);
+}
+
+void configureProcesses(int* iSize, TImageConfig* image) {
+
+	int iProcess;
+	/* spread the config */
+	for(iProcess = 1; iProcess < *iSize; iProcess++) {
+		MPI_Ssend(&(image->iWidth), 	1, 	MPI_INT, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get iHeight */
+		MPI_Ssend(&(image->iHeight), 	1, 	MPI_INT, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get uiMaxIterations */
+		MPI_Ssend(&(image->uiMaxIterations), 1, MPI_UNSIGNED, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get iSlices */
+		MPI_Ssend(&(image->iSlices), 	1, 	MPI_INT, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get dReMin */
+		MPI_Ssend(&(image->dReMin), 	1, 	MPI_DOUBLE, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get dReMax */
+		MPI_Ssend(&(image->dReMax), 	1, 	MPI_DOUBLE, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get dImMin */
+		MPI_Ssend(&(image->dImMin), 	1, 	MPI_DOUBLE, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get dImMax */
+		MPI_Ssend(&(image->dImMax), 	1, 	MPI_DOUBLE, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get dReFactor */
+		MPI_Ssend(&(image->dReFactor), 	1, 	MPI_DOUBLE, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get dImFactor */
+		MPI_Ssend(&(image->dImFactor), 	1, 	MPI_DOUBLE, 	iProcess, 	1, 	MPI_COMM_WORLD);
+	}
 }
 
 int initializeProcesses(int* iSize, int* iSlices, int* iSliceCache) {
@@ -283,6 +353,9 @@ void processSlices(TImageConfig* image, int* iSlice, TSlice* sliceDimensions,
 }
 
 void master(int* iSize, TImageConfig* image) {
+	
+	/* configure the processes */
+	configureProcesses(iSize, image);	
 	
 	/* reserving a buffer for the slice dimensions */
 	TSlice sliceDimensions[image->iSlices];
@@ -359,19 +432,19 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 		/* options have to be declared here -- otherwise they will not work as expected */
 		struct option oLongOptions[] = {
 			/* These options set a flag. */
-			{"dialog", 	no_argument,       &bDialogFlag, 	'd'},
-			{"bestpic",	no_argument,	   &bBestPicFlag, 	'p'},
+			{"dialog", 	no_argument,       	&bDialogFlag, 	'd'},
+			{"bestpic",	no_argument,	   	&bBestPicFlag, 	'p'},
 			/* These options don't set a flag.
 			   We distinguish them by their indices. */
-			{"width",     	required_argument,      0, 'w'},
-			{"height",  	required_argument,      0, 'h'},
-			{"iterations",  required_argument, 	0, 'n'},
-			{"immin",  	required_argument, 	0, 'a'},
+			{"width",     	required_argument,      0, 		'w'},
+			{"height",  	required_argument,      0, 		'h'},
+			{"iterations",  required_argument, 	0, 		'n'},
+			{"immin",  	required_argument, 	0, 		'a'},
 			/* skipping one indice in order be able to improve later */
-			{"remin",	required_argument,	0, 'i'},
-			{"remax",	required_argument,	0, 'j'},
-			{"filename",    required_argument, 	0, 'f'},
-		       	{0, 0, 0, 0}
+			{"remin",	required_argument,	0, 		'i'},
+			{"remax",	required_argument,	0, 		'j'},
+			{"filename",    required_argument, 	0,		'f'},
+		       	{0, 		0, 			0, 		0}
 		};
 		/* get the next option */
 		iIndex = getopt_long (argc, argv, "dpw:h:n:a:i:j:f:", oLongOptions, &iOptionIndex);
@@ -439,19 +512,6 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
  */
 int main(int argc, char **argv) {
 
-	/* TODO: only the master shall handle the config and distribute it to the slaves */
-
-	/* initialize a default config */
-	TImageConfig image;
-	initializeConfig(&image);
-
-	/* parse command line parameters and update the config */
-	parseCommandLineParameters(argc, argv, &image);
-
-	/* finalize config - automatic computation of dynamic 
-	   configuration values */
-	finalizeConfig(&image);
-
 	/* initialize MPI */
 	int rank, iSize;
 	MPI_Init(&argc, &argv);
@@ -460,9 +520,18 @@ int main(int argc, char **argv) {
 
 	/* doing the work */
 	if(rank==0) {
-		master(&iSize, &image);
+			/* initialize a default config */
+			TImageConfig image;
+			initializeConfig(&image);
+			/* parse command line parameters and update the config */
+			parseCommandLineParameters(argc, argv, &image);
+			/* finalize config - automatic computation of dynamic 
+	   		   configuration values */
+			finalizeConfig(&image);
+			/* do master tasks */
+			master(&iSize, &image);
 	} else {
-		slave(&rank, &image);	
+		slave(&rank);	
 	}
 	return 0;
 }
