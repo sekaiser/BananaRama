@@ -7,12 +7,15 @@
 
 /* #define __mandelbrot__debug__ */
 
+/* defines an alias for unsigned char */
 typedef unsigned char Tuchar;
 
+/* defines a slice */
 typedef struct {
 	int start, end;
 } TSlice;
 
+/* defines the image configuration */
 typedef struct {
 	int iWidth, iHeight, iSlices;
 	unsigned int uiMaxIterations;
@@ -22,6 +25,7 @@ typedef struct {
 
 Tuchar* allocateTucharP(int* size) {
 
+	/* allocate the buffer */
 	Tuchar* tmp = (Tuchar*)malloc(*size);
 
 	if(tmp==0) {
@@ -88,6 +92,7 @@ Tuchar* getBmpInfoHeader(int* iImageWidth, int* iImageHeight) {
 
 FILE* getBmpFileHandler(const char* filename) {
 
+	/* create the file handler */
 	FILE* tmp = fopen(filename,"wb");
 
 	if(tmp==0) {
@@ -134,7 +139,7 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 	double dColor;
 	unsigned uN;
 
-	/* iterate */
+	/* iterate the point */
 	for(uN = 0; uN < image->uiMaxIterations; ++uN) {
 		double dZre2 = (*dZre) * (*dZre), dZim2 = (*dZim) * (*dZim);
 		if(dZre2 + dZim2 > 4) {
@@ -145,7 +150,7 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 		*dZim = 2 * (*dZre) * (*dZim) + (*dCim);
 		*dZre = dZre2 - dZim2 + (*dCre);
 	}
-
+	/* set the color config */
 	iPosition = (*x + *y * image->iWidth) * 3;	
 	if(bIsInside==1) { 
 		img[iPosition] 	 = (Tuchar)(0); /* b */
@@ -161,6 +166,7 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 
 void computeSlice(TImageConfig* image, TSlice* mySlice, Tuchar* img) {
 	int y;
+	/* loop over the pixels */
 	for(y = mySlice->start; y < mySlice->end; ++y) {
 		double dCim = image->dImMax - y * image->dImFactor;
 		int x;
@@ -318,7 +324,7 @@ void configureProcesses(int* iSize, TImageConfig* image) {
 int initializeProcesses(int* iSize, int* iSlices, int* iSliceCache) {
 	int iProcess, iSlice=0;
 	for (iProcess = 1; iProcess < *iSize; iProcess++) {
-		/* generate Mandelbrot set in each process */
+		/* send first slice to each process */
 		if(iSlice<*iSlices) {
 			#ifdef __mandelbrot__debug__
 			printf("Sending slice '%d' to process '%d'\n", iSlice, iProcess);
@@ -335,11 +341,11 @@ void processSlices(TImageConfig* image, int* iSlice, TSlice* sliceDimensions,
 			int* iSliceCache, Tuchar* buffer, Tuchar* out) {
 
 	int iRecvSlice;
+	/* receive slices */
 	for(iRecvSlice = 0; iRecvSlice < image->iSlices; iRecvSlice++) {
-		
 		int iSource;
 		MPI_Status status;
-
+		/* receive the slice */
 		MPI_Recv(buffer, 3 * image->iWidth * image->iHeight, 
 			 MPI_CHAR, MPI_ANY_SOURCE, 327, MPI_COMM_WORLD, &status);
 
@@ -353,17 +359,19 @@ void processSlices(TImageConfig* image, int* iSlice, TSlice* sliceDimensions,
 			image->iWidth * sliceDimensions[iSliceCache[iSource]].end * 3);
 		#endif
 		int x;
+		/* cache the slice values */
 		for(x = image->iWidth * sliceDimensions[iSliceCache[iSource]].start * 3; 
 			x < image->iWidth * sliceDimensions[iSliceCache[iSource]].end * 3; x++) {
 			out[x] = buffer[x];
 		}	
 
-		/* compute another slice */
+		/* send another slice */
 		if (*iSlice < image->iSlices) {
 			MPI_Ssend(iSlice, 1, MPI_INT, iSource, 325, MPI_COMM_WORLD);
 			iSliceCache[iSource] = *iSlice;
 			(*iSlice)++;
 		} else {
+			/* send the kill signal */
 			int kill = -1;
 			MPI_Ssend(&kill, 1, MPI_INT, iSource, 325, MPI_COMM_WORLD);
 		}
@@ -538,6 +546,7 @@ int main(int argc, char **argv) {
 
 	/* doing the work */
 	if(rank==0) {
+		/* master branch */
 		/* initialize a default config */
 		TImageConfig image;
 		initializeConfig(&image);
@@ -549,6 +558,7 @@ int main(int argc, char **argv) {
 		/* do master tasks */
 		master(&iSize, &image);
 	} else {
+		/* slave branch */
 		#ifdef __mandelbrot__debug__
 		slave(&rank);
 		#else
