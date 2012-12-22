@@ -520,16 +520,18 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 		}
 	}
 
-	if(bDialogFlag == 1 && bBestPicFlag == 1) {
-		/* TODO: print error msg or do something */
-	}
-
-	if(bDialogFlag == 1){
-		dialog(config);
-	}
-	
+	/* configuring bestpic */
 	if(bBestPicFlag == 1) {
 		bestpictureConfig(config);
+	}
+	/* using the dialog
+	   note: if we have set the bestpic before (e.g. the user sets both flags),
+		 the dialog defaults will show the bestpic configuration
+		 this enables us to work-around an error message if both flags are 
+		 set
+	 */
+	if(bDialogFlag == 1){
+		dialog(config);
 	}
 }
 
