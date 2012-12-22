@@ -44,6 +44,21 @@ Tuchar* allocateTucharP(int* size) {
 	return tmp;
 }
 
+char* allocateCharP(int* size) {
+
+	/* allocate the buffer */
+	char* tmp = (char*)malloc(*size);
+
+	if(tmp==0) {
+		fprintf(stderr, "Out of memory!\n");
+		exit(1);
+	}
+
+	memset(tmp,0,sizeof(tmp));
+
+	return tmp;
+}
+
 Tuchar* getBmpFileHeader(int* filesize) {
 
 	/* reserving some memory */
@@ -488,35 +503,63 @@ void dialog(TImageConfig* config) {
 	do {
 		printf("Please specify the picture width (current: %d):\n", config->iWidth);
 		iReturn = scanf("%d", &(config->iWidth));
-	} while (iReturn!=1);
-	printf("Please specify the picture height (current: %d):\n", config->iHeight);
-	scanf("%d", &(config->iHeight));
-	printf("Please specify the number of slices the picture will be splitted to (current: %d):\n", config->iSlices);
-	scanf("%d", &(config->iSlices));
-	printf("Please specify the iteration maximum (current: %d):\n", config->uiMaxIterations);
-	scanf("%d", &(config->uiMaxIterations));
-	printf("Please specify the imaginary minimum value (current: %f):\n", config->dImMin);
-	scanf("%lf", &(config->dImMin));
-	printf("Please specify the real minimum value (current: %f):\n", config->dReMin);
-	scanf("%lf", &(config->dReMin));	
-	printf("Please specify the real maximum value (current: %f):\n", config->dReMax);
-	scanf("%lf", &(config->dReMax));
-	printf("Please specify the mandelbrot set red value (current: %d):\n", config->iRed);
-	scanf("%d", &(config->iRed));
-	printf("Please specify the mandelbrot set green value (current: %d):\n", config->iGreen);
-	scanf("%d", &(config->iGreen));
-	printf("Please specify the mandelbrot set blue value (current: %d):\n", config->iBlue);
-	scanf("%d", &(config->iBlue));
-	printf("Please specify the background red value (current: %d):\n", config->iRedBg);
-	scanf("%d", &(config->iRedBg));
-	printf("Please specify the background green value (current: %d):\n", config->iGreenBg);
-	scanf("%d", &(config->iGreenBg));
-	printf("Please specify the background blue value (current: %d):\n", config->iBlueBg);
-	scanf("%d", &(config->iBlueBg));
-	/*
-	printf("Please specify the filename (current: %s):\n", config->FileName);
-	scanf("%s", config->FileName);
-	*/	
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the picture height (current: %d):\n", config->iHeight);
+		iReturn = scanf("%d", &(config->iHeight));
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the number of slices the picture will be splitted to (current: %d):\n", config->iSlices);
+		iReturn = scanf("%d", &(config->iSlices));
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the iteration maximum (current: %d):\n", config->uiMaxIterations);
+		iReturn = scanf("%d", &(config->uiMaxIterations));
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the imaginary minimum value (current: %f):\n", config->dImMin);
+		iReturn = scanf("%lf", &(config->dImMin));
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the real minimum value (current: %f):\n", config->dReMin);
+		iReturn = scanf("%lf", &(config->dReMin));	
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the real maximum value (current: %f):\n", config->dReMax);
+		iReturn = scanf("%lf", &(config->dReMax));
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the mandelbrot set red value (current: %d):\n", config->iRed);
+		iReturn = scanf("%d", &(config->iRed));
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the mandelbrot set green value (current: %d):\n", config->iGreen);
+		iReturn = scanf("%d", &(config->iGreen));
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the mandelbrot set blue value (current: %d):\n", config->iBlue);
+		iReturn = scanf("%d", &(config->iBlue));
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the background red value (current: %d):\n", config->iRedBg);
+		iReturn = scanf("%d", &(config->iRedBg));
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the background green value (current: %d):\n", config->iGreenBg);
+		iReturn = scanf("%d", &(config->iGreenBg));
+	} while (iReturn != 1);
+	do {
+		printf("Please specify the background blue value (current: %d):\n", config->iBlueBg);
+		iReturn = scanf("%d", &(config->iBlueBg));
+	} while (iReturn != 1);
+	/* since we can not do config->FileName = "blabla" again, we need to allocate fresh memory */
+	int iMemory = 128;
+	char* cTmp = allocateCharP(&iMemory);
+	do {
+		printf("Please specify the filename (current: %s):\n", config->FileName);
+		iReturn = scanf("%126s", cTmp);
+	} while (iReturn != 1);
+	config->FileName=cTmp;
 }
 
 void printUsageInformation() {
