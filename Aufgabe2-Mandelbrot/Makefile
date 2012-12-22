@@ -6,9 +6,8 @@ CC=mpicc
 CFLAGS=-Wall -Wextra -ansi
 OBJ=mandelbrot
 
-compile: mandelbrot.c \
-	 mandelbrot.h
-	$(CC) $(CFLAGS) -o $(OBJ) mandelbrot.c
+compile: source/mandelbrot.c
+	$(CC) $(CFLAGS) -o $(OBJ) source/mandelbrot.c
 
 .PHONY: clean
 

@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <mpi.h>
 #include <getopt.h>
-#include "mandelbrot.h"
+#include "../include/mandelbrot.h"
 
 Tuchar* allocateTucharP(int* size) {
 
