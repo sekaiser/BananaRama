@@ -430,6 +430,7 @@ void initializeConfig(TImageConfig* image) {
 
 void finalizeConfig(TImageConfig* image) {
 
+	/* auto compute some values */
 	image->dImMax = image->dImMin + (image->dReMax - image->dReMin) * image->iHeight / image->iWidth;
 	image->dReFactor = (image->dReMax - image->dReMin) / (image->iWidth - 1);
 	image->dImFactor = (image->dImMax - image->dImMin) / (image->iHeight - 1);
@@ -438,13 +439,13 @@ void finalizeConfig(TImageConfig* image) {
 
 void bestpictureConfig(TImageConfig* config) {
 
-	config->iWidth = 1920;
-	config->iHeight= 1080;
+	/* only change, what will be different from the basic config */
+	config->iWidth = 1200;
+	config->iHeight= 900;
 	config->uiMaxIterations = 255;
 	config->dReMin = -0.3871904296875;
 	config->dReMax = -0.3858232421874879;
 	config->dImMin = 0.6238156738281248;
-	config->FileName = "mandelbrot.bmp";
 
 }
 
