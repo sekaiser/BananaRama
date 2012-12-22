@@ -519,15 +519,25 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 				break;
              		case 'w':
 				config->iWidth = atoi(optarg);
-				/* TODO: print error if <0 */
+				if(config->iWidth < 0) {
+					fprintf(stderr, "ERROR: You may not set a negative value for --width / -w !\n");
+					exit(1);
+				}
                			break;
              		case 'h':
 				config->iHeight = atoi(optarg);
-				/* TODO: print error if <0 */
+				if(config->iHeight < 0) {
+					fprintf(stderr, "ERROR: You may not set a negative value for --height / -h !\n");
+					exit(1);
+				}				
                			break;
              		case 'n':
+				/* prevent unsinged underflow */
+				if(optarg[0]=='-') {
+					fprintf(stderr, "ERROR: You may not set a negative value for --iterations / -n !\n");
+					exit(1);
+				}
 				config->uiMaxIterations = (unsigned int) atoi(optarg);
-				/* TODO: print error if <0 */
 				break;
 			case 'a':
 				config->dImMin = atof(optarg);
@@ -540,22 +550,22 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 				break;
 			case 'f':
 				config->FileName = optarg;
-				/* TODO: print error if =="" */
-				printf("filename: %s\n", config->FileName);
 				break;
 			case 's':
 				config->iSlices = atoi(optarg);
+				if(config->iSlices < 0) {
+					fprintf(stderr, "ERROR: You may not set a negative value for --slices / -s !\n");
+					exit(1);
+				}
 				break;
 			case 'u':
 				printUsageInformation();
 				break;
              		case '?':
                			/* getopt_long already printed an default error message. */
-				fprintf(stderr, "type: 'mpirun program --help' for usage information!\n");
+				fprintf(stderr, "type 'mpirun program --help' for usage information!\n");
 				exit(1);
              		default:
-				/* when does this get called? maybe if no parameter is set? */
-				/* TODO: print usage information!? */
                			exit(1);
 		}
 	}
