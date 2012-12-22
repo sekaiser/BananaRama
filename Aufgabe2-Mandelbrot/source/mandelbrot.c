@@ -10,7 +10,22 @@
 #include <fcntl.h>
 #include <mpi.h>
 #include <getopt.h>
-#include "../include/mandelbrot.h"
+
+/* #define __mandelbrot__debug__ */
+
+typedef unsigned char Tuchar;
+/* defines a slice */
+typedef struct {
+	int start, end;
+} TSlice;
+
+/* defines the configuration */
+typedef struct {
+	int iWidth, iHeight, iSlices, iRed, iGreen, iBlue, iRedBg, iGreenBg, iBlueBg;
+	unsigned int uiMaxIterations;
+	double dImMin, dImMax, dReMin, dReMax, dReFactor, dImFactor;
+	char* FileName;
+} TImageConfig;
 
 Tuchar* allocateTucharP(int* size) {
 
