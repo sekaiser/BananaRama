@@ -13,20 +13,45 @@
 
 /* #define __mandelbrot__debug__ */
 
+/*
+	\brief defines an alias of unsigned char
+*/
 typedef unsigned char Tuchar;
-/* defines a slice */
+
+/* 
+	\brief defines a slice
+*/
 typedef struct {
-	int start, end;
+	int 	start,	///< the start height of the slice
+		end;	///< the end height of the slice
 } TSlice;
 
-/* defines the configuration */
+/* 
+	\brief defines the configuration
+*/
 typedef struct {
-	int iWidth, iHeight, iSlices, iRed, iGreen, iBlue, iRedBg, iGreenBg, iBlueBg;
-	unsigned int uiMaxIterations;
-	double dImMin, dImMax, dReMin, dReMax, dReFactor, dImFactor;
-	char* FileName;
+	int 	iWidth, 		///< image width
+		iHeight, 		///< image height
+		iSlices,		///< number of slices the image will be splitted to
+		iRed,			///< red value of the mandelbrot set
+		iGreen,			///< green value of the mandelbrot set
+		iBlue, 			///< blue value of the mandelbrot set
+		iRedBg,			///< background red value
+		iGreenBg,		///< background green value
+		iBlueBg;		///< background blue value
+	unsigned int uiMaxIterations;	///< maximal number of iterations per point
+	double 	dImMin,			///< minimal imaginary value
+		dImMax,			///< maximal imaginary value
+		dReMin,			///< minimal real value
+		dReMax,			///< maximal real value
+		dReFactor,		///< real factor
+		dImFactor;		///< imaginary factor
+	char* 	FileName;		///< name of the output file
 } TImageConfig;
 
+/*
+	\brief
+*/
 Tuchar* allocateTucharP(int* size) {
 
 	/* allocate the buffer */
@@ -42,6 +67,9 @@ Tuchar* allocateTucharP(int* size) {
 	return tmp;
 }
 
+/*
+	\brief
+*/
 char* allocateCharP(int* size) {
 
 	/* allocate the buffer */
@@ -57,6 +85,9 @@ char* allocateCharP(int* size) {
 	return tmp;
 }
 
+/*
+	\brief
+*/
 Tuchar* getBmpFileHeader(int* filesize) {
 
 	/* reserving some memory */
@@ -82,6 +113,9 @@ Tuchar* getBmpFileHeader(int* filesize) {
 	return pHeader;
 }
 
+/*
+	\brief
+*/
 Tuchar* getBmpInfoHeader(int* iImageWidth, int* iImageHeight) {
 
 	/* reserving some memory */
@@ -109,6 +143,9 @@ Tuchar* getBmpInfoHeader(int* iImageWidth, int* iImageHeight) {
 	return pHeader;
 }
 
+/*
+	\brief
+*/
 FILE* getBmpFileHandler(const char* filename) {
 
 	/* create the file handler */
@@ -122,6 +159,9 @@ FILE* getBmpFileHandler(const char* filename) {
 	return tmp;
 }
 
+/*
+	\brief
+*/
 void writeBmp(int* iImageWidth, int* iImageHeight, const char* FileName, const Tuchar* pImage) {
 
 	int iLoop;
@@ -151,6 +191,9 @@ void writeBmp(int* iImageWidth, int* iImageHeight, const char* FileName, const T
 	fclose(aFile);
 }
 
+/*
+	\brief
+*/
 void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, double* dZim, double* dCre, 
 			   double* dCim, Tuchar* img) {
 
@@ -183,6 +226,9 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 	}
 }
 
+/*
+	\brief
+*/
 void computeSlice(TImageConfig* image, TSlice* mySlice, Tuchar* img) {
 
 	int y;
@@ -199,6 +245,9 @@ void computeSlice(TImageConfig* image, TSlice* mySlice, Tuchar* img) {
 	}
 }
 
+/*
+	\brief
+*/
 void initializeSlices(int* iHeight, int* iSlices, TSlice* sliceDimensions) {
 
 	/* compute average slice height and the rest (will be added to the 
@@ -219,6 +268,9 @@ void initializeSlices(int* iHeight, int* iSlices, TSlice* sliceDimensions) {
 	}
 }
 
+/*
+	\brief
+*/
 #ifdef __mandelbrot__debug__
 void slaveReceiveSlices(int* rank, TImageConfig* image, TSlice* sliceDimensions, Tuchar* buffer) {
 #else
@@ -251,6 +303,9 @@ void slaveReceiveSlices(TImageConfig* image, TSlice* sliceDimensions, Tuchar* bu
 	}
 }
 
+/*
+	\brief
+*/
 void slaveReceiveConfig(TImageConfig* config) {
 	
 	/* get iWidth */
@@ -288,6 +343,9 @@ void slaveReceiveConfig(TImageConfig* config) {
 
 }
 
+/*
+	\brief
+*/
 #ifdef __mandelbrot__debug__
 void slave(int* rank) {
 #else
@@ -315,6 +373,9 @@ void slave() {
 	#endif
 }
 
+/*
+	\brief
+*/
 void configureProcesses(int* iSize, TImageConfig* image) {
 
 	int iProcess;
@@ -354,6 +415,9 @@ void configureProcesses(int* iSize, TImageConfig* image) {
 	}
 }
 
+/*
+	\brief
+*/
 int initializeProcesses(int* iSize, int* iSlices, int* iSliceCache) {
 
 	int iProcess, iSlice=0;
@@ -374,6 +438,9 @@ int initializeProcesses(int* iSize, int* iSlices, int* iSliceCache) {
 	return iSlice;
 }
 
+/*
+	\brief
+*/
 void processSlices(TImageConfig* image, int* iSlice, TSlice* sliceDimensions, 
 			int* iSliceCache, Tuchar* buffer, Tuchar* out) {
 
@@ -415,6 +482,9 @@ void processSlices(TImageConfig* image, int* iSlice, TSlice* sliceDimensions,
 	}
 }
 
+/*
+	\brief
+*/
 void master(int* iSize, TImageConfig* image) {
 	
 	/* configure the processes */
@@ -447,6 +517,9 @@ void master(int* iSize, TImageConfig* image) {
 	writeBmp(&(image->iWidth), &(image->iHeight), image->FileName, out);
 }
 
+/*
+	\brief
+*/
 void initializeConfig(TImageConfig* image) {
 
 	image->iWidth = 1200;
@@ -466,6 +539,9 @@ void initializeConfig(TImageConfig* image) {
 
 }
 
+/*
+	\brief
+*/
 void finalizeConfig(TImageConfig* image) {
 
 	/* auto compute some values */
@@ -475,6 +551,9 @@ void finalizeConfig(TImageConfig* image) {
 
 }
 
+/*
+	\brief
+*/
 void bestpictureConfig(TImageConfig* config) {
 
 	/* only change, what will be different from the basic config */
@@ -490,6 +569,9 @@ void bestpictureConfig(TImageConfig* config) {
 
 }
 
+/*
+	\brief
+*/
 void dialog(TImageConfig* config) {
 
 	printf(	"mandelbrot generator in mpi-conform C\n"
@@ -560,6 +642,9 @@ void dialog(TImageConfig* config) {
 	config->FileName=cTmp;
 }
 
+/*
+	\brief
+*/
 void printUsageInformation() {
 
 	printf("mandelbrot generator in mpi-conform C\n"
@@ -591,12 +676,19 @@ void printUsageInformation() {
 	exit(0);
 }
 
+/*
+	\brief
+*/
 void underflowCheckInteger(int* iInteger, char* cLParam, char* cSParam){
 	if(*iInteger < 0) {
 		fprintf(stderr, "ERROR: You may not set a negative value for %s / %s !\n", cLParam, cSParam);
 		exit(1);
 	}
 }
+
+/*
+	\brief
+*/
 void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 
 	int iIndex, bDialogFlag = 0, bBestPicFlag = 0;
@@ -727,8 +819,8 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 }
 
 /*
- * the main routine
- */
+	\brief
+*/
 int main(int argc, char **argv) {
 
 	/* initialize MPI */
