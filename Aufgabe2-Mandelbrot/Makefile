@@ -1,5 +1,5 @@
 # Minimal Makefile for the Apfelmann project
-# by R. Fruth, S. Kaiser, E. Kuhnt
+# (c) 2012 by R. Fruth, S. Kaiser, E. Kuhnt
 #
 # configuration of important variables
 CC=mpicc
