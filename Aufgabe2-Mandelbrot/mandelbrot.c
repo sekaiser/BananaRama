@@ -17,7 +17,7 @@ typedef struct {
 
 /* defines the image configuration */
 typedef struct {
-	int iWidth, iHeight, iSlices;
+	int iWidth, iHeight, iSlices, iRed, iGreen, iBlue, iRedBg, iGreenBg, iBlueBg;
 	unsigned int uiMaxIterations;
 	double dReMin, dReMax, dImMin, dImMax, dReFactor, dImFactor;
 	char* FileName;
@@ -153,14 +153,14 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 	/* set the color config */
 	iPosition = (*x + *y * image->iWidth) * 3;	
 	if(bIsInside==1) { 
-		img[iPosition] 	 = (Tuchar)(0); 	/* b */
-		img[++iPosition] = (Tuchar)(0);		/* g */
-		img[++iPosition] = (Tuchar)(255);	/* r */
+		img[iPosition] 	 = (Tuchar)(image->iBlueBg);
+		img[++iPosition] = (Tuchar)(image->iGreenBg);
+		img[++iPosition] = (Tuchar)(image->iRedBg);
 	} else {
-		/*dColor = dColor / image->uiMaxIterations * 255;*/
-		img[iPosition]   = (Tuchar)(0);
-		img[++iPosition] = (Tuchar)(0);
-		img[++iPosition] = (Tuchar) dColor;
+		dColor = dColor / image->uiMaxIterations;
+		img[iPosition]   = (Tuchar) (dColor * image->iBlue);
+		img[++iPosition] = (Tuchar) (dColor * image->iGreen);
+		img[++iPosition] = (Tuchar) (dColor * image->iRed);
 	}
 }
 
@@ -249,7 +249,25 @@ void slaveReceiveConfig(TImageConfig* config) {
 	config->uiMaxIterations = uiBuffer;
 	/* get iSlices */
 	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	config->iSlices = iBuffer;	
+	config->iSlices = iBuffer;
+	/* get iRed */
+	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->iRed = iBuffer;
+	/* get iGreen */
+	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->iGreen = iBuffer;
+	/* get iBlue */
+	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->iBlue = iBuffer;
+	/* get iRedBg */
+	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->iRedBg = iBuffer;
+	/* get iGreenBg */
+	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->iGreenBg = iBuffer;
+	/* get iBlueBg */
+	MPI_Recv(&iBuffer, 	1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	config->iBlueBg = iBuffer;
 	/* get dReMin */
 	MPI_Recv(&dBuffer, 	1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	config->dReMin = dBuffer;
@@ -310,6 +328,18 @@ void configureProcesses(int* iSize, TImageConfig* image) {
 		MPI_Ssend(&(image->uiMaxIterations), 1, MPI_UNSIGNED, 	iProcess, 	1, 	MPI_COMM_WORLD);
 		/* get iSlices */
 		MPI_Ssend(&(image->iSlices), 	1, 	MPI_INT, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get iRed */
+		MPI_Ssend(&(image->iRed), 	1, 	MPI_INT, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get iGreen */
+		MPI_Ssend(&(image->iGreen), 	1, 	MPI_INT, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get iBlue */
+		MPI_Ssend(&(image->iBlue), 	1, 	MPI_INT, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get iRedBg */
+		MPI_Ssend(&(image->iRedBg), 	1, 	MPI_INT, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get iGreen */
+		MPI_Ssend(&(image->iGreenBg), 	1, 	MPI_INT, 	iProcess, 	1, 	MPI_COMM_WORLD);
+		/* get iBlue */
+		MPI_Ssend(&(image->iBlueBg), 	1, 	MPI_INT, 	iProcess, 	1, 	MPI_COMM_WORLD);
 		/* get dReMin */
 		MPI_Ssend(&(image->dReMin), 	1, 	MPI_DOUBLE, 	iProcess, 	1, 	MPI_COMM_WORLD);
 		/* get dReMax */
@@ -417,14 +447,20 @@ void master(int* iSize, TImageConfig* image) {
 
 void initializeConfig(TImageConfig* image) {
 
-	image->iWidth = 640;
-	image->iHeight = 480;
+	image->iWidth = 1200;
+	image->iHeight = 900;
 	image->uiMaxIterations = 120;
 	image->iSlices = 11;
 	image->dReMin = -2.0;
 	image->dReMax = 1.0;
 	image->dImMin = -1.2;
 	image->FileName = "mandelbrot.bmp";
+	image->iRed = 255;
+	image->iGreen = 255;
+	image->iBlue = 0;
+	image->iRedBg = 0;
+	image->iGreenBg = 0;
+	image->iBlueBg = 0;
 
 }
 
@@ -446,6 +482,9 @@ void bestpictureConfig(TImageConfig* config) {
 	config->dReMin = -0.3871904296875;
 	config->dReMax = -0.3858232421874879;
 	config->dImMin = 0.6238156738281248;
+	config->iRedBg = 255;
+	config->iGreenBg = 255;
+	config->iBlueBg = 255;
 
 }
 
@@ -465,12 +504,18 @@ void printUsageInformation() {
 		"--dialog\t-d\tnone\t\tnot set\t\tenable the configuration dialog\n"
 		"--bestpic\t-p\tnone\t\tnot set\t\tgenerate the best picture\n"
 		"--help\t\t-u\tnone\t\tnot set\t\tdisplay this information\n"
-		"--width\t\t-w\tint\t\t640\t\tset the picture width\n"
-		"--height\t-h\tint\t\t480\t\tset the picture height\n"
+		"--width\t\t-w\tint\t\t1200\t\tset the picture width\n"
+		"--height\t-h\tint\t\t900\t\tset the picture height\n"
 		"--iterations\t-n\tunsigned\t120\t\tset the iterations max\n"
 		"--immin\t\t-a\tdouble\t\t-1.2\t\tset the minimal imaginary value\n"
 		"--remin\t\t-i\tdouble\t\t-2.0\t\tset the minimal real value\n"
 		"--remax\t\t-j\tdouble\t\t1.0\t\tset the maximal real value\n"
+		"--red\t\t-r\tint\t\t255\t\t set the red value\n"
+		"--green\t\t-g\tint\t\t255\t\t set the green value\n"
+		"--blue\t\t-b\tint\t\t0\t\t set the blue value\n"
+		"--redBg\t\t-y\tint\t\t0\t\t set the background red value\n"
+		"--greenBg\t\t-x\tint\t\t0\t\t set the background green value\n"
+		"--blueBg\t\t-z\tint\t\t0\t\t set the background blue value\n"
 		"--filename\t-f\tchar[]\t\tmandelbrot.bmp\tset the filename\n"
 		"--slices\t-s\tint\t\t11\t\tset the number of slices\n\n"
 		"note: values not mentioned above will be computed automatically for you!"
@@ -483,6 +528,7 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 
 	int iIndex, bDialogFlag = 0, bBestPicFlag = 0;
 
+	/* TODO: extract underflow test */
 	/* we will write directly to the config in order to prevent more memory allocations */ 
 	while (1) {
 		/* getopt_long stores the option index here. */
@@ -504,10 +550,16 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 			{"remax",	required_argument,	0, 	'j'},
 			{"slices",	required_argument,	0, 	's'},
 			{"filename",    required_argument, 	0,	'f'},
+			{"red",		required_argument,	0,	'r'},
+			{"green",	required_argument,	0,	'g'},
+			{"blue",	required_argument,	0,	'b'},
+			{"redBg",	required_argument,	0,	'x'},
+			{"greenBg",	required_argument,	0,	'y'},
+			{"blueBg",	required_argument,	0,	'z'},			
 		       	{0, 		0, 			0,	0}
 		};
 		/* get the next option */
-		iIndex = getopt_long (argc, argv, "udpw:h:n:a:i:j:s:f:", oLongOptions, &iOptionIndex);
+		iIndex = getopt_long (argc, argv, "udpw:h:n:a:i:j:s:f:r:g:b:x:z:y:", oLongOptions, &iOptionIndex);
 		/* Detect the end of the options. */
 		if (iIndex == -1)
 			break;
@@ -552,6 +604,48 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 				break;
 			case 'f':
 				config->FileName = optarg;
+				break;
+			case 'r':
+				config->iRed = atoi(optarg);
+				if(config->iRed < 0) {
+					fprintf(stderr, "ERROR: You may not set a negative value for --red / -r !\n");
+					exit(1);
+				}
+				break;
+			case 'g':
+				config->iGreen = atoi(optarg);
+				if(config->iGreen < 0) {
+					fprintf(stderr, "ERROR: You may not set a negative value for --green / -g !\n");
+					exit(1);
+				}
+				break;
+			case 'b':
+				config->iBlue = atoi(optarg);
+				if(config->iBlue < 0) {
+					fprintf(stderr, "ERROR: You may not set a negative value for --blue / -b !\n");
+					exit(1);
+				}
+				break;
+			case 'x':
+				config->iRedBg = atoi(optarg);
+				if(config->iRedBg < 0) {
+					fprintf(stderr, "ERROR: You may not set a negative value for --redBg / -x !\n");
+					exit(1);
+				}
+				break;
+			case 'y':
+				config->iGreenBg = atoi(optarg);
+				if(config->iGreenBg < 0) {
+					fprintf(stderr, "ERROR: You may not set a negative value for --greenBg / -y !\n");
+					exit(1);
+				}
+				break;
+			case 'z':
+				config->iBlueBg = atoi(optarg);
+				if(config->iBlueBg < 0) {
+					fprintf(stderr, "ERROR: You may not set a negative value for --blueBg / -z !\n");
+					exit(1);
+				}
 				break;
 			case 's':
 				config->iSlices = atoi(optarg);
