@@ -5,6 +5,8 @@
 #include <mpi.h>
 #include <getopt.h>
 
+/* #define __mandelbrot__debug__ */
+
 typedef unsigned char Tuchar;
 
 typedef struct {
@@ -189,7 +191,11 @@ void initializeSlices(int* iHeight, int* iSlices, TSlice* sliceDimensions) {
 	}
 }
 
+#ifdef __mandelbrot__debug__
 void slaveReceiveSlices(int* rank, TImageConfig* image, TSlice* sliceDimensions, Tuchar* buffer) {
+#else
+void slaveReceiveSlices(TImageConfig* image, TSlice* sliceDimensions, Tuchar* buffer) {
+#endif
 
 	int iSlice;
 	MPI_Status status;
@@ -197,8 +203,9 @@ void slaveReceiveSlices(int* rank, TImageConfig* image, TSlice* sliceDimensions,
 	for (;;) {
 		/* receive a new slice to calculate */
 		MPI_Recv(&iSlice, 1, MPI_INT, 0, 325, MPI_COMM_WORLD, &status);
-		printf("Receiving slice '%d' in process '%d'\n", iSlice, *rank);
-
+		#ifdef __mandelbrot__debug__
+			printf("Receiving slice '%d' in process '%d'\n", iSlice, *rank);
+		#endif
 		/* suicide signal */
 		if (iSlice < 0) {
 			MPI_Finalize();
@@ -206,7 +213,9 @@ void slaveReceiveSlices(int* rank, TImageConfig* image, TSlice* sliceDimensions,
 		}
 
 		/* calculate requested slice */
+		#ifdef __mandelbrot__debug__
 		printf("slice '%d' start-end: %d-%d\n", iSlice, sliceDimensions[iSlice].start, sliceDimensions[iSlice].end);
+		#endif
 		computeSlice(image, &(sliceDimensions[iSlice]), buffer);
 
 		/* send results back to master */
@@ -253,8 +262,11 @@ void slaveReceiveConfig(TImageConfig* config) {
 
 }
 
+#ifdef __mandelbrot__debug__
 void slave(int* rank) {
-
+#else
+void slave() {
+#endif
 	/* get the config */
 	TImageConfig image;
 	slaveReceiveConfig(&image);
@@ -270,11 +282,14 @@ void slave(int* rank) {
 	initializeSlices(&(image.iHeight), &(image.iSlices), sliceDimensions);
 
 	/* processing the slices */
+	#ifdef __mandelbrot__debug__
 	slaveReceiveSlices(rank, &image, sliceDimensions, buffer);
+	#else
+	slaveReceiveSlices(&image, sliceDimensions, buffer);
+	#endif
 }
 
 void configureProcesses(int* iSize, TImageConfig* image) {
-
 	int iProcess;
 	/* spread the config */
 	for(iProcess = 1; iProcess < *iSize; iProcess++) {
@@ -305,7 +320,9 @@ int initializeProcesses(int* iSize, int* iSlices, int* iSliceCache) {
 	for (iProcess = 1; iProcess < *iSize; iProcess++) {
 		/* generate Mandelbrot set in each process */
 		if(iSlice<*iSlices) {
+			#ifdef __mandelbrot__debug__
 			printf("Sending slice '%d' to process '%d'\n", iSlice, iProcess);
+			#endif
 			MPI_Ssend(&iSlice, 1, MPI_INT, iProcess, 325, MPI_COMM_WORLD);
 			iSliceCache[iProcess] = iSlice;
 			iSlice++;
@@ -329,11 +346,12 @@ void processSlices(TImageConfig* image, int* iSlice, TSlice* sliceDimensions,
 		/* source of the slice */
 		iSource = status.MPI_SOURCE;
 		/* assemble the image */
+		#ifdef __mandelbrot__debug__
 		printf("received computation for slice '%d' by process '%d'\nso char '%d' to '%d' are copied to out\n", 
 			iSliceCache[iSource], iSource,
 			image->iWidth * sliceDimensions[iSliceCache[iSource]].start * 3, 
 			image->iWidth * sliceDimensions[iSliceCache[iSource]].end * 3);
-
+		#endif
 		int x;
 		for(x = image->iWidth * sliceDimensions[iSliceCache[iSource]].start * 3; 
 			x < image->iWidth * sliceDimensions[iSliceCache[iSource]].end * 3; x++) {
@@ -432,19 +450,19 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 		/* options have to be declared here -- otherwise they will not work as expected */
 		struct option oLongOptions[] = {
 			/* These options set a flag. */
-			{"dialog", 	no_argument,       	&bDialogFlag, 	'd'},
-			{"bestpic",	no_argument,	   	&bBestPicFlag, 	'p'},
+			{"dialog", 	no_argument,       	0, 	'd'},
+			{"bestpic",	no_argument,	   	0, 	'p'},
 			/* These options don't set a flag.
 			   We distinguish them by their indices. */
-			{"width",     	required_argument,      0, 		'w'},
-			{"height",  	required_argument,      0, 		'h'},
-			{"iterations",  required_argument, 	0, 		'n'},
-			{"immin",  	required_argument, 	0, 		'a'},
+			{"width",     	required_argument,      0, 	'w'},
+			{"height",  	required_argument,      0, 	'h'},
+			{"iterations",  required_argument, 	0, 	'n'},
+			{"immin",  	required_argument, 	0, 	'a'},
 			/* skipping one indice in order be able to improve later */
-			{"remin",	required_argument,	0, 		'i'},
-			{"remax",	required_argument,	0, 		'j'},
-			{"filename",    required_argument, 	0,		'f'},
-		       	{0, 		0, 			0, 		0}
+			{"remin",	required_argument,	0, 	'i'},
+			{"remax",	required_argument,	0, 	'j'},
+			{"filename",    required_argument, 	0,	'f'},
+		       	{0, 		0, 			0,	0}
 		};
 		/* get the next option */
 		iIndex = getopt_long (argc, argv, "dpw:h:n:a:i:j:f:", oLongOptions, &iOptionIndex);
@@ -531,7 +549,11 @@ int main(int argc, char **argv) {
 		/* do master tasks */
 		master(&iSize, &image);
 	} else {
-		slave(&rank);	
+		#ifdef __mandelbrot__debug__
+		slave(&rank);
+		#else
+		slave();
+		#endif
 	}
 	return 0;
 }
