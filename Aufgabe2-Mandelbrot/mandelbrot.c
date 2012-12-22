@@ -421,33 +421,34 @@ void dialog(TImageConfig* config) {
 void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 
 	int iIndex, bDialogFlag = 0, bBestPicFlag = 0;
-	struct option oLongOptions[] = {
-		/* These options set a flag. */
-		{"dialog", 	no_argument,       &bDialogFlag, 	'd'},
-		{"bestpic",	no_argument,	   &bBestPicFlag, 	'p'},
-		/* These options don't set a flag.
-		   We distinguish them by their indices. */
-		{"width",     	required_argument,      0, 'w'},
-		{"height",  	required_argument,      0, 'h'},
-		{"n",  		required_argument, 	0, 'n'},
-		{"immin",  	required_argument, 	0, 'a'},
-		/* skipping one indice in order be able to improve later */
-		{"remin",	required_argument,	0, 'i'},
-		{"remax",	required_argument,	0, 'j'},
-		{"filename",    required_argument, 	0, 'f'},
-               	{0, 0, 0, 0}
-	};
 
 	/* we will write directly to the config in order to prevent more memory allocations */ 
 	while (1) {
 		/* getopt_long stores the option index here. */
 		int iOptionIndex = 0;
+		/* options have to be declared here -- otherwise they will not work as expected */
+		struct option oLongOptions[] = {
+			/* These options set a flag. */
+			{"dialog", 	no_argument,       &bDialogFlag, 	'd'},
+			{"bestpic",	no_argument,	   &bBestPicFlag, 	'p'},
+			/* These options don't set a flag.
+			   We distinguish them by their indices. */
+			{"width",     	required_argument,      0, 'w'},
+			{"height",  	required_argument,      0, 'h'},
+			{"n",  		required_argument, 	0, 'n'},
+			{"immin",  	required_argument, 	0, 'a'},
+			/* skipping one indice in order be able to improve later */
+			{"remin",	required_argument,	0, 'i'},
+			{"remax",	required_argument,	0, 'j'},
+			{"filename",    required_argument, 	0, 'f'},
+		       	{0, 0, 0, 0}
+		};
+		/* get the next option */
 		iIndex = getopt_long (argc, argv, "dpw:h:n:a:i:j:f:", oLongOptions, &iOptionIndex);
-
 		/* Detect the end of the options. */
 		if (iIndex == -1)
 			break;
-     
+		/* loop through the different option possibilities */
 		switch (iIndex) {
              		case 'd':
 				bDialogFlag = 1;
@@ -495,7 +496,7 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 	}
 
 	if(bDialogFlag == 1){
-		
+		dialog(config);
 	}
 	
 	if(bBestPicFlag == 1) {
