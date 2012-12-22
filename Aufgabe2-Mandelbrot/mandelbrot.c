@@ -456,7 +456,7 @@ void dialog(TImageConfig* config) {
 
 void printUsageInformation() {
 
-	printf("mandelbrot generator in mpi conform C\n"
+	printf("mandelbrot generator in mpi-conform C\n"
 		"(c) 2012 R. Fruth, S. Kaiser & E. Kuhnt\n\n"
 		"usage information:\n"
 		"\tmpirun program [options]\n\n"
@@ -472,7 +472,8 @@ void printUsageInformation() {
 		"--remin\t\t-i\tdouble\t\t-2.0\t\tset the minimal real value\n"
 		"--remax\t\t-j\tdouble\t\t1.0\t\tset the maximal real value\n"
 		"--filename\t-f\tchar[]\t\tmandelbrot.bmp\tset the filename\n"
-		"--slices\t-s\tint\t\t11\t\tset the number of slices"
+		"--slices\t-s\tint\t\t11\t\tset the number of slices\n\n"
+		"note: values not mentioned above will be computed automatically for you!"
 		"\n"
 		);
 	exit(0);
