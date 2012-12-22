@@ -4,6 +4,12 @@
 	
 	for details please see the attached readme
 */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <mpi.h>
+#include <getopt.h>
 #include "mandelbrot.h"
 
 Tuchar* allocateTucharP(int* size) {

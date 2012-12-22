@@ -4,12 +4,8 @@
 	
 	for details please see the attached readme
 */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <mpi.h>
-#include <getopt.h>
+#ifndef __mandelbrot__h__
+#define __mandelbrot__h__
 
 /* #define __mandelbrot__debug__ */
 
@@ -81,3 +77,6 @@ void underflowCheckInteger(int* iInteger, char* cLParam, char* cSParam);
 void parseCommandLineParameters(int argc, char** argv, TImageConfig* config);
 
 int main(int argc, char **argv);
+
+#endif
+
