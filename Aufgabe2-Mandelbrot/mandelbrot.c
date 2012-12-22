@@ -344,78 +344,8 @@ void bestpictureConfig(TImageConfig* config) {
 
 }
 
-void setParam(char *message, char *formatSpecifier, void **param,
-	      char *buffer, void **stdVal) {
-
-	printf("%s: ", message);
-	/* TODO: add precompiler statement for buffer size */
-  	fgets(buffer, 100 - 1, stdin);
-  	if ((buffer[0] == ' ') | (buffer[0] == '\n')) {
-    		*param = *stdVal;
-  	} else {
-    		sscanf(buffer, formatSpecifier, param);
-  	}
-}
-
-void setStringParam(char *message, char **param, char *buffer, char **stdVal) {
-
-  	int i;
- 
-	/* TODO: add precompiler statement for buffer size */
-  	printf("%s: ", message);
-  	fgets(buffer, 100 - 1, stdin);
-  	for (i = 0; i < 100; i++) {
-    		if (buffer[i] == '\n') {
-      			buffer[i] = '\0';
-      			break;
-    		}
-  	}
-
-  	if ((buffer[0] == ' ') | (buffer[0] == '\0')) {
-    		*param = *stdVal;
-  	} else {
-    		*param = (char*)malloc(++i);
-		int j;
-    		for(j = 0; j < i; j++) {
-      			(*param)[j] = buffer[j];
-    		}
-  	}
-
-  	printf("%s", *param);
-}
-
 void dialog(TImageConfig* config) {
-	/* TODO: write allocation method or add a precompiler statement */
-  	char buffer[100];
-	/* TODO: move to printDialogHeader() */
-  	printf("Welcome to MandelbrotApp!\n");
-  	printf("===================================================\n");
-  	printf("Please specify the some parameters in order\n");
-  	printf("to run the application. If you do not specify a\n");
- 	printf("value the default value will be taken. The default");
-	printf("value is written in paranthesis.");
-	printf("\n");
-	printf("\n");
-  
-	/* TODO: add precompiler statements for default values */
-	setParam("Set x-length of picture (640): ", "%d", (void **)&(config->iWidth), buffer, (void**)640);
-	setParam("Set y-length of picture (480): ", "%d", (void **)&(config->iHeight), buffer, (void **)480);
-	setParam("Set maximum number of iteartions (120): ", "%d", (void **)&(config->uiMaxIterations), buffer, (void **)120);
-	setParam("Set the number of slices to compute (10): ", "%d", (void **)&(config->iSlices), buffer, (void **)11);
-	printf("\n");
-	printf("Now you need to specify the plane dimension.\n");
-	setParam("Set minimum value of real part (-2.0): ", "%lf", (void **)&(config->dReMin), buffer, (void **)-2);
-	setParam("Set maximum value of real part (1): ", "%lf", (void **)&(config->dReMax), buffer, (void **)1);
-	double dTmp = -1.2;
-	setParam("Set minimum value of imaginary part (-1.2): ", "%lf", (void **)&(config->dImMin), buffer, (void **)&dTmp);
-
-	/* we do compute this values automatically, so no need to set them here
-	   config->dImMax = std->dImMax;
-	   config->dReFactor = std->dReFactor;
-	   config->dImFactor = std->dImFactor;
-	 */
-
-	setStringParam("Set filename (mandelbrot.bmp): ", (char **)&(config->FileName), buffer, (char **)"mandelbrot.bmp");
+	printf("here would the dialog start\n");	
 }
 
 void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
