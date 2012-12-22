@@ -435,7 +435,7 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 			   We distinguish them by their indices. */
 			{"width",     	required_argument,      0, 'w'},
 			{"height",  	required_argument,      0, 'h'},
-			{"n",  		required_argument, 	0, 'n'},
+			{"iterations",  required_argument, 	0, 'n'},
 			{"immin",  	required_argument, 	0, 'a'},
 			/* skipping one indice in order be able to improve later */
 			{"remin",	required_argument,	0, 'i'},
