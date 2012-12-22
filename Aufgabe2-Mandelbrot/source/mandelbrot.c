@@ -50,18 +50,22 @@ typedef struct {
 } TImageConfig;
 
 /*
-	\brief
+	\brief allocates new Tuchar memory
+	\param size is the amount of memory
+	\return a pointer to the new memory
 */
 Tuchar* allocateTucharP(int* size) {
 
 	/* allocate the buffer */
 	Tuchar* tmp = (Tuchar*)malloc(*size);
 
+	/* check if memory has been allocated */
 	if(tmp==0) {
 		fprintf(stderr, "Out of memory!\n");
 		exit(1);
 	}
 
+	/* initialize the memory */
 	memset(tmp,0,sizeof(tmp));
 
 	return tmp;
@@ -75,18 +79,22 @@ char* allocateCharP(int* size) {
 	/* allocate the buffer */
 	char* tmp = (char*)malloc(*size);
 
+	/* check if memory has been allocated */
 	if(tmp==0) {
 		fprintf(stderr, "Out of memory!\n");
 		exit(1);
 	}
 
+	/* initialize the memory */
 	memset(tmp,0,sizeof(tmp));
 
 	return tmp;
 }
 
 /*
-	\brief
+	\brief generates a bitmap file header
+	\param filesize is the size of the target file
+	\return a pointer to the new bitmap file header
 */
 Tuchar* getBmpFileHeader(int* filesize) {
 
@@ -114,7 +122,10 @@ Tuchar* getBmpFileHeader(int* filesize) {
 }
 
 /*
-	\brief
+	\brief generates a bitmap info header
+	\param iImageWidth is the value of the picture width
+	\param iImageHeight is the value of the picture height
+	\return a pointer to the new bitmap info header
 */
 Tuchar* getBmpInfoHeader(int* iImageWidth, int* iImageHeight) {
 
@@ -144,13 +155,16 @@ Tuchar* getBmpInfoHeader(int* iImageWidth, int* iImageHeight) {
 }
 
 /*
-	\brief
+	\brief opens a file handler on an existing or new file
+	\param filename is the name of the target file
+	\return a pointer to the file handler
 */
 FILE* getBmpFileHandler(const char* filename) {
 
 	/* create the file handler */
 	FILE* tmp = fopen(filename,"wb");
 
+	/* check if the file is available on the fs */
 	if(tmp==0) {
 		fprintf(stderr, "Can not write to file '%s'!\n", filename);
 		exit(1);
