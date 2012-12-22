@@ -153,9 +153,9 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 	/* set the color config */
 	iPosition = (*x + *y * image->iWidth) * 3;	
 	if(bIsInside==1) { 
-		img[iPosition] 	 = (Tuchar)(0); /* b */
-		img[++iPosition] = (Tuchar)(0); /* g */
-		img[++iPosition] = (Tuchar)(255); /* r */
+		img[iPosition] 	 = (Tuchar)(0); 	/* b */
+		img[++iPosition] = (Tuchar)(0);		/* g */
+		img[++iPosition] = (Tuchar)(255);	/* r */
 	} else {
 		/*dColor = dColor / image->uiMaxIterations * 255;*/
 		img[iPosition]   = (Tuchar)(0);
@@ -165,6 +165,7 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 }
 
 void computeSlice(TImageConfig* image, TSlice* mySlice, Tuchar* img) {
+
 	int y;
 	/* loop over the pixels */
 	for(y = mySlice->start; y < mySlice->end; ++y) {
@@ -181,6 +182,8 @@ void computeSlice(TImageConfig* image, TSlice* mySlice, Tuchar* img) {
 
 void initializeSlices(int* iHeight, int* iSlices, TSlice* sliceDimensions) {
 
+	/* compute average slice height and the rest (will be added to the 
+	   last average slice) */
 	double dAverage = (double) *iHeight / *iSlices;
 	int iRest = *iHeight - (*iSlices * (int)dAverage);
 
@@ -296,6 +299,7 @@ void slave() {
 }
 
 void configureProcesses(int* iSize, TImageConfig* image) {
+
 	int iProcess;
 	/* spread the config */
 	for(iProcess = 1; iProcess < *iSize; iProcess++) {
@@ -322,6 +326,7 @@ void configureProcesses(int* iSize, TImageConfig* image) {
 }
 
 int initializeProcesses(int* iSize, int* iSlices, int* iSliceCache) {
+
 	int iProcess, iSlice=0;
 	for (iProcess = 1; iProcess < *iSize; iProcess++) {
 		/* send first slice to each process */
@@ -433,8 +438,8 @@ void finalizeConfig(TImageConfig* image) {
 
 void bestpictureConfig(TImageConfig* config) {
 
-	config->iWidth = 800;
-	config->iHeight= 600;
+	config->iWidth = 1920;
+	config->iHeight= 1080;
 	config->uiMaxIterations = 255;
 	config->dReMin = -0.3871904296875;
 	config->dReMax = -0.3858232421874879;
@@ -444,7 +449,32 @@ void bestpictureConfig(TImageConfig* config) {
 }
 
 void dialog(TImageConfig* config) {
+
 	printf("here would the dialog start\n");	
+}
+
+void printUsageInformation() {
+
+	printf("mandelbrot generator in mpi conform C\n"
+		"(c) 2012 R. Fruth, S. Kaiser & E. Kuhnt\n\n"
+		"usage information:\n"
+		"\tmpirun program [options]\n\n"
+		"options:\n"
+		"long\t\tshort\targ\t\tdefault\t\teffect\n"
+		"--dialog\t-d\tnone\t\tnot set\t\tenable the configuration dialog\n"
+		"--bestpic\t-p\tnone\t\tnot set\t\tgenerate the best picture\n"
+		"--help\t\t-u\tnone\t\tnot set\t\tdisplay this information\n"
+		"--width\t\t-w\tint\t\t640\t\tset the picture width\n"
+		"--height\t-h\tint\t\t480\t\tset the picture height\n"
+		"--iterations\t-n\tunsigned\t120\t\tset the iterations max\n"
+		"--immin\t\t-a\tdouble\t\t-1.2\t\tset the minimal imaginary value\n"
+		"--remin\t\t-i\tdouble\t\t-2.0\t\tset the minimal real value\n"
+		"--remax\t\t-j\tdouble\t\t1.0\t\tset the maximal real value\n"
+		"--filename\t-f\tchar[]\t\tmandelbrot.bmp\tset the filename\n"
+		"--slices\t-s\tint\t\t11\t\tset the number of slices"
+		"\n"
+		);
+	exit(0);
 }
 
 void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
@@ -460,6 +490,7 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 			/* These options set a flag. */
 			{"dialog", 	no_argument,       	0, 	'd'},
 			{"bestpic",	no_argument,	   	0, 	'p'},
+			{"help",	no_argument,		0,	'u'},
 			/* These options don't set a flag.
 			   We distinguish them by their indices. */
 			{"width",     	required_argument,      0, 	'w'},
@@ -469,11 +500,12 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 			/* skipping one indice in order be able to improve later */
 			{"remin",	required_argument,	0, 	'i'},
 			{"remax",	required_argument,	0, 	'j'},
+			{"slices",	required_argument,	0, 	's'},
 			{"filename",    required_argument, 	0,	'f'},
 		       	{0, 		0, 			0,	0}
 		};
 		/* get the next option */
-		iIndex = getopt_long (argc, argv, "dpw:h:n:a:i:j:f:", oLongOptions, &iOptionIndex);
+		iIndex = getopt_long (argc, argv, "udpw:h:n:a:i:j:s:f:", oLongOptions, &iOptionIndex);
 		/* Detect the end of the options. */
 		if (iIndex == -1)
 			break;
@@ -509,6 +541,12 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 			case 'f':
 				strcpy(config->FileName, optarg);
 				/* TODO: print error if =="" */
+				break;
+			case 's':
+				config->iSlices = atoi(optarg);
+				break;
+			case 'u':
+				printUsageInformation();
 				break;
              		case '?':
                			/* getopt_long already printed an default error message. */
