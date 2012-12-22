@@ -539,8 +539,9 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 				config->dReMax = atof(optarg);
 				break;
 			case 'f':
-				strcpy(config->FileName, optarg);
+				config->FileName = optarg;
 				/* TODO: print error if =="" */
+				printf("filename: %s\n", config->FileName);
 				break;
 			case 's':
 				config->iSlices = atoi(optarg);
@@ -550,7 +551,8 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 				break;
              		case '?':
                			/* getopt_long already printed an default error message. */
-               			break;
+				fprintf(stderr, "type: 'mpirun program --help' for usage information!\n");
+				exit(1);
              		default:
 				/* when does this get called? maybe if no parameter is set? */
 				/* TODO: print usage information!? */
