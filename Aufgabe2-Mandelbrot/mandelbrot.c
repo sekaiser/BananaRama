@@ -520,16 +520,16 @@ int main(int argc, char **argv) {
 
 	/* doing the work */
 	if(rank==0) {
-			/* initialize a default config */
-			TImageConfig image;
-			initializeConfig(&image);
-			/* parse command line parameters and update the config */
-			parseCommandLineParameters(argc, argv, &image);
-			/* finalize config - automatic computation of dynamic 
-	   		   configuration values */
-			finalizeConfig(&image);
-			/* do master tasks */
-			master(&iSize, &image);
+		/* initialize a default config */
+		TImageConfig image;
+		initializeConfig(&image);
+		/* parse command line parameters and update the config */
+		parseCommandLineParameters(argc, argv, &image);
+		/* finalize config - automatic computation of dynamic 
+   		   configuration values */
+		finalizeConfig(&image);
+		/* do master tasks */
+		master(&iSize, &image);
 	} else {
 		slave(&rank);	
 	}
