@@ -13,6 +13,9 @@ compiling the program
 	To compile the program you just need to type 'make' within the project directory.
 	The provided Makefile will place a mandelbrot binary in the project directory.
 
+	If you have, you can run doxygen on our source as we have commented doxygen-style 
+	where possible.
+
 running the program
 	After you compiled the program you may run it with the help parameter in order
 	to see all available configuration parameters. The usage information itself is
