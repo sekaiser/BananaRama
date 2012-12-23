@@ -22,11 +22,17 @@ function outputJob {
 	echo "Do you want to submit your job (type: 0) or save it to a file (type: 1)?"
 	read YESNO
 	if [ "${YESNO}" == "0" ] ; then
-		echo "submitting your job..."
+		echo "Submitting your job..."
 		echo -e "${1}" | qsub
 	elif [ "${YESNO}" == "1" ] ; then
-		echo "saving your job to file..."
-		echo -e "${1}" > ${JOBFILE}
+		echo "Please state the name ofthe file your job shall be saved to (default: job.pbs): "		
+		read JOBFILE
+		echo "Saving your job to file..."
+		if [ ! "${JOBFILE}" == "" ] ; then
+			echo -e "${1}" > ${JOBFILE}
+		else
+			echo -e "${1}" > "job.pbs"
+		fi
 	else
 		echo "Oooops I did not understand you. But I assume you want to submit your job!"
 		echo "submitting your job..."
@@ -40,11 +46,8 @@ function printDialogHeader {
 
 	echo ""
 	echo "mandelbrot job configurator"
-	echo "(c) 2012 by R. Fruth, S. Kaiser & E. Kuhnt"
-	echo ""
-	echo "Welcome to the configuration of your mandelbrot job!"
-	echo ""
-	echo ""
+	echo "(c) 2012 by R. Fruth, S. Kaiser & E. Kuhnt\n\n"
+	echo -e "Welcome to the configuration of your mandelbrot job!\n\n"
 
 }
 
@@ -54,7 +57,7 @@ function printDialogIntro {
 	echo "this dialog will help you performing the following configuration steps:"
 	echo "1. configure your PBS environment (only the needed basics)"
 	echo "2. configure your mandelbrot call"
-	echo "3. submit your job or save the job file"
+	echo -e "3. submit your job or save the job file\n\n"
 
 }
 
@@ -123,6 +126,7 @@ function main {
 	fi
 
 	echo -e "\n2. configure your mandelbrot call"
+
 	echo "What shall be the name of your bitmap file (default: 'mandelbrot.bmp')? "
 	read MB_FILENAME
 	if [ ! "${MB_FILENAME}" == "" ] ; then
@@ -130,9 +134,9 @@ function main {
 	fi
 
 	echo "What shall be the width of your picture (default: 800)? "
-	read MPI_WIDTH
-	if [ ! "${MPI_WIDTH}" == "" ] ; then
-		MPI_WIDTH="--width ${MB_WIDTH}"
+	read MB_WIDTH
+	if [ ! "${MB_WIDTH}" == "" ] ; then
+		MB_WIDTH="--width ${MB_WIDTH}"
 	fi
 
 	echo "What shall be the height of your picture (default: 600)? "
@@ -207,14 +211,10 @@ function main {
 		MB_IMMIN="--immin ${MB_IMMIN}"
 	fi
 
-
-
-
-
-
-
 	echo -e "\n3. submit your job or save the job file\n"
-	MB_ARGS=""
+	MB_ARGS="${MB_FILENAME} ${MB_WIDTH} ${MB_HEIGHT} ${MB_ITERATIONS} ${MB_SLICES}"
+	MB_ARGS="${MB_ARGS} ${MB_RED} ${MB_GREEN} ${MB_BLUE} ${MB_REDBG} ${MB_GREENBG} ${MB_BLUEBG}"
+	MB_ARGS="${MB_ARGS} ${MB_REMAX} ${MB_REMIN} ${MB_IMMIN}"
 
 	PBS_CONFIG="${PBS_NAME}\n#PBS -j oe\n#PBS -r n\n${PBS_MAIL}\n${PBS_WALLTIME}\n"
 	PBS_CONFIG="${PBS_CONFIG}${PBS_NODES}${PBS_PPN}\n${MPI_PATH} ${MPI_NODES} -machinefile \$PBS_NODEFILE `pwd`/${BINARY}"
