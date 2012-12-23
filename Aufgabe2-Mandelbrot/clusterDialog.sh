@@ -7,22 +7,6 @@
 MPI_PATH="/cvos/shared/apps/mpich2/ge/gcc/64/1.3.1/bin/mpirun"
 BINARY="mandelbrot"
 
-MB_WIDTH=""
-MB_HEIGHT=""
-MB_ITERATIONS=""
-MB_SLICES=""
-MB_BESTPIC=""
-MB_FILENAME=""
-MB_RED=""
-MB_GREEN=""
-MB_BLUE=""
-MB_REDBG=""
-MB_GREENBG=""
-MB_BLUEBG=""
-MB_REMAX=""
-MB_REMIN=""
-MB_IMMIN=""
-
 # checks if the binary is present
 function checkBinary {
 	# check if the binary exists
@@ -64,6 +48,7 @@ function main {
 
 	printDialogIntro
 
+	echo "1. configure your PBS environment (only the needed basics)"
 	# can not move them to a function as the catching
 	# of the variable blocks the output
 	echo "Type the name of your job (default: mb): "
@@ -118,15 +103,103 @@ function main {
 		MPI_NODES="-np ${MPI_NODES}"
 	fi
 
+	echo -e "\n2. configure your mandelbrot call"
+	echo "What shall be the name of your bitmap file (default: 'mandelbrot.bmp')? "
+	read MB_FILENAME
+	if [ ! "${MB_FILENAME}" == "" ] ; then
+		MB_FILENAME="--filename ${MB_FILENAME}"
+	fi
+
+	echo "What shall be the width of your picture (default: 800)? "
+	read MPI_WIDTH
+	if [ ! "${MPI_WIDTH}" == "" ] ; then
+		MPI_WIDTH="--width ${MB_WIDTH}"
+	fi
+
+	echo "What shall be the height of your picture (default: 600)? "
+	read MB_HEIGHT
+	if [ ! "${MB_HEIGHT}" == "" ] ; then
+		MB_HEIGHT="--height ${MB_HEIGHT}"
+	fi
+
+	echo "How many time shall be iterated over a point (default: 120)? "
+	read MB_ITERATIONS
+	if [ ! "${MB_ITERATIONS}" == "" ] ; then
+		MB_ITERATIONS="-n ${MB_ITERATIONS}"
+	fi
+
+	echo "How many slices shall the picture be splitted to (default: 11)? "
+	read MB_SLICES
+	if [ ! "${MB_SLICES}" == "" ] ; then
+		MB_SLICES="-s ${MB_SLICES}"
+	fi
+
+	echo "What shall be the red value of the mandelbrot set (default: 255)? "
+	read MB_RED
+	if [ ! "${MB_RED}" == "" ] ; then
+		MB_RED="--red ${MB_RED}"
+	fi
+
+	echo "What shall be the green value of the mandelbrot set (default: 255)? "
+	read MB_GREEN
+	if [ ! "${MB_GREEN}" == "" ] ; then
+		MB_GREEN="--green ${MB_GREEN}"
+	fi
+
+	echo "What shall be the blue value of the mandelbrot set (default: 0)? "
+	read MB_BLUE
+	if [ ! "${MB_BLUE}" == "" ] ; then
+		MB_BLUE="--blue ${MB_BLUE}"
+	fi
+
+	echo "What shall be the background red value (default: 0)? "
+	read MB_REDBG
+	if [ ! "${MB_REDBG}" == "" ] ; then
+		MB_REDBG="--redBg ${MB_REDBG}"
+	fi
+
+	echo "What shall be the background green value (default: 0)? "
+	read MB_GREENBG
+	if [ ! "${MB_GREENBG}" == "" ] ; then
+		MB_GREENBG="--greenBg ${MB_GREENBG}"
+	fi
+
+	echo "What shall be the background blue value (default: 0)? "
+	read MB_BLUEBG
+	if [ ! "${MB_BLUEBG}" == "" ] ; then
+		MB_BLUEBG="--blueBg ${MB_BLUEBG}"
+	fi
+
+	echo "What shall be the maximal real value (default: 1.0)? "
+	read MB_REMAX
+	if [ ! "${MB_REMAX}" == "" ] ; then
+		MB_REMAX="--remax ${MB_REMAX}"
+	fi
+
+	echo "What shall be the minimal real value (default: -2.0)? "
+	read MB_REMIN
+	if [ ! "${MB_REMIN}" == "" ] ; then
+		MB_REMIN="--remin ${MB_REMIN}"
+	fi
+
+	echo "What shall be the minimal imaginary value (default: -1.2)? "
+	read MB_IMMIN
+	if [ ! "${MB_IMMIN}" == "" ] ; then
+		MB_IMMIN="--immin ${MB_IMMIN}"
+	fi
 
 
 
 
 
 
-	echo -e "#!/bin/bash\n${PBS_NAME}\n#PBS -j oe\n#PBS -r n\n${PBS_MAIL}\n${PBS_WALLTIME}\n"
-	echo -e "${PBS_NODES}${PBS_PPN}\n"
-	echo -e "${MPI_PATH} ${MPI_NODES} -machinefile \$PBS_NODEFILE `pwd`/${BINARY}"
+
+	echo -e "\n3. submit your job or save the job file"
+	MB_ARGS=""
+
+	PBS_CONFIG="${PBS_NAME}\n#PBS -j oe\n#PBS -r n\n${PBS_MAIL}\n${PBS_WALLTIME}\n"
+	PBS_CONFIG="${PBS_CONFIG}${PBS_NODES}${PBS_PPN}\n${MPI_PATH} ${MPI_NODES} -machinefile \$PBS_NODEFILE `pwd`/${BINARY}"
+	echo -e "#!/bin/bash\n${PBS_CONFIG} ${MB_ARGS}"
 }
 
 main "$@"
