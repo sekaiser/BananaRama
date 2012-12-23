@@ -61,29 +61,55 @@ function main {
 
 	printDialogIntro
 
+	# can not move them to a function as the catching
+	# of the variable blocks the output
 	echo "Type the name of your job (default: mb): "
 	read PBS_NAME
 	if [ "$PBS_NAME" == "" ] ; then
-		PBS_NAME="#PBS -N mb"
+		PBS_NAME="#PBS -N mb\n"
 	else
-		PBS_NAME="#PBS -N $PBS_NAME"
+		PBS_NAME="#PBS -N $PBS_NAME'n"
 	fi
 
 	echo "Do you want to get notified via eMail if your job exits or aborts? Type your mail address: "
 	read PBS_MAIL
 	if [ ! "$PBS_MAIL" == "" ] ; then
-		PBS_MAIL="#PBS -m ae\n#PBS -M $PBS_MAIL"
+		PBS_MAIL="#PBS -m ae\n#PBS -M $PBS_MAIL\n"
 	fi
 	
-	PBS_MAILADDR=""		# user mail address
-	PBS_WALLTIME=""		# wall time on the cluster
-	PBS_NODES=""		# number of nodes
-	PBS_PPN=""		# cores per node
+	echo "How many nodes do your want to reserve (default: 4)? "
+	read PBS_NODES
+	if [ "$PBS_NODES" == "" ] ; then
+		PBS_NODES="#PBS -l nodes=4"
+	else
+		PBS_NODES="#PBS -l nodes=$PBS_NODES"
+	fi
 
-	MPI_PATH="/cvos/shared/apps/mpich2/ge/gcc/64/1.3.1/bin/mpirun" # mpi path
+	echo "How many cores per node do you want to reserve (default: 1)? "
+	read PBS_PPN
+	if [ "$PBS_PPN" == "" ] ; then
+		PBS_PPN=":ppn=1\n"
+	else
+		PBS_PPN=":ppn=$PBS_PPN\n"
+	fi
+
+	echo "How much walltime do you want to reserve (default: 00:00:05)?"
+	read PBS_WALLTIME
+	if [ "$PBS_WALLTIME" == "" ] ; then
+		PBS_WALLTIME="#PBS -l walltime=00:00:05"
+	else
+		PBS_WALLTIME="#PBS -l walltime=$PBS_WALLTIME\n"
+	fi
+
+
+
+	
+	MPI_PATH="/cvos/shared/apps/mpich2/ge/gcc/64/1.3.1/bin/mpirun"
+
+
 	MPI_NODES="-np 4"
 
-	echo -e "PBSmail: $PBS_MAIL"
+	echo -e ""
 
 }
 
