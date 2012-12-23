@@ -126,100 +126,109 @@ function main {
 	fi
 
 	echo -e "\n2. configure your mandelbrot call"
+	MB_ARGS=""
 
-	echo "What shall be the name of your bitmap file (default: 'mandelbrot.bmp')? "
-	read MB_FILENAME
-	if [ ! "${MB_FILENAME}" == "" ] ; then
-		MB_FILENAME="--filename ${MB_FILENAME}"
+	echo "Do you want to use the provided best picture configuration (type: yes)?"
+	read YESNO
+	if [ "${YESNO}" == "yes" ] ; then
+		MB_ARGS="--bestpic"
+	else
+		echo "You typed '${YESNO}' - so i assume you want to use your own configuration..."
+		echo "What shall be the name of your bitmap file (default: 'mandelbrot.bmp')? "
+		read MB_FILENAME
+		if [ ! "${MB_FILENAME}" == "" ] ; then
+			MB_FILENAME="--filename ${MB_FILENAME}"
+		fi
+
+		echo "What shall be the width of your picture (default: 800)? "
+		read MB_WIDTH
+		if [ ! "${MB_WIDTH}" == "" ] ; then
+			MB_WIDTH="--width ${MB_WIDTH}"
+		fi
+
+		echo "What shall be the height of your picture (default: 600)? "
+		read MB_HEIGHT
+		if [ ! "${MB_HEIGHT}" == "" ] ; then
+			MB_HEIGHT="--height ${MB_HEIGHT}"
+		fi
+
+		echo "How many time shall be iterated over a point (default: 120)? "
+		read MB_ITERATIONS
+		if [ ! "${MB_ITERATIONS}" == "" ] ; then
+			MB_ITERATIONS="-n ${MB_ITERATIONS}"
+		fi
+
+		echo "How many slices shall the picture be splitted to (default: 11)? "
+		read MB_SLICES
+		if [ ! "${MB_SLICES}" == "" ] ; then
+			MB_SLICES="-s ${MB_SLICES}"
+		fi
+
+		echo "What shall be the red value of the mandelbrot set (default: 255)? "
+		read MB_RED
+		if [ ! "${MB_RED}" == "" ] ; then
+			MB_RED="--red ${MB_RED}"
+		fi
+
+		echo "What shall be the green value of the mandelbrot set (default: 255)? "
+		read MB_GREEN
+		if [ ! "${MB_GREEN}" == "" ] ; then
+			MB_GREEN="--green ${MB_GREEN}"
+		fi
+
+		echo "What shall be the blue value of the mandelbrot set (default: 0)? "
+		read MB_BLUE
+		if [ ! "${MB_BLUE}" == "" ] ; then
+			MB_BLUE="--blue ${MB_BLUE}"
+		fi
+
+		echo "What shall be the background red value (default: 0)? "
+		read MB_REDBG
+		if [ ! "${MB_REDBG}" == "" ] ; then
+			MB_REDBG="--redBg ${MB_REDBG}"
+		fi
+
+		echo "What shall be the background green value (default: 0)? "
+		read MB_GREENBG
+		if [ ! "${MB_GREENBG}" == "" ] ; then
+			MB_GREENBG="--greenBg ${MB_GREENBG}"
+		fi
+
+		echo "What shall be the background blue value (default: 0)? "
+		read MB_BLUEBG
+		if [ ! "${MB_BLUEBG}" == "" ] ; then
+			MB_BLUEBG="--blueBg ${MB_BLUEBG}"
+		fi
+
+		echo "What shall be the maximal real value (default: 1.0)? "
+		read MB_REMAX
+		if [ ! "${MB_REMAX}" == "" ] ; then
+			MB_REMAX="--remax ${MB_REMAX}"
+		fi
+
+		echo "What shall be the minimal real value (default: -2.0)? "
+		read MB_REMIN
+		if [ ! "${MB_REMIN}" == "" ] ; then
+			MB_REMIN="--remin ${MB_REMIN}"
+		fi
+
+		echo "What shall be the minimal imaginary value (default: -1.2)? "
+		read MB_IMMIN
+		if [ ! "${MB_IMMIN}" == "" ] ; then
+			MB_IMMIN="--immin ${MB_IMMIN}"
+		fi
+
+	
+		MB_ARGS="${MB_FILENAME} ${MB_WIDTH} ${MB_HEIGHT} ${MB_ITERATIONS} ${MB_SLICES}"
+		MB_ARGS="${MB_ARGS} ${MB_RED} ${MB_GREEN} ${MB_BLUE} ${MB_REDBG} ${MB_GREENBG} ${MB_BLUEBG}"
+		MB_ARGS="${MB_ARGS} ${MB_REMAX} ${MB_REMIN} ${MB_IMMIN}"
 	fi
-
-	echo "What shall be the width of your picture (default: 800)? "
-	read MB_WIDTH
-	if [ ! "${MB_WIDTH}" == "" ] ; then
-		MB_WIDTH="--width ${MB_WIDTH}"
-	fi
-
-	echo "What shall be the height of your picture (default: 600)? "
-	read MB_HEIGHT
-	if [ ! "${MB_HEIGHT}" == "" ] ; then
-		MB_HEIGHT="--height ${MB_HEIGHT}"
-	fi
-
-	echo "How many time shall be iterated over a point (default: 120)? "
-	read MB_ITERATIONS
-	if [ ! "${MB_ITERATIONS}" == "" ] ; then
-		MB_ITERATIONS="-n ${MB_ITERATIONS}"
-	fi
-
-	echo "How many slices shall the picture be splitted to (default: 11)? "
-	read MB_SLICES
-	if [ ! "${MB_SLICES}" == "" ] ; then
-		MB_SLICES="-s ${MB_SLICES}"
-	fi
-
-	echo "What shall be the red value of the mandelbrot set (default: 255)? "
-	read MB_RED
-	if [ ! "${MB_RED}" == "" ] ; then
-		MB_RED="--red ${MB_RED}"
-	fi
-
-	echo "What shall be the green value of the mandelbrot set (default: 255)? "
-	read MB_GREEN
-	if [ ! "${MB_GREEN}" == "" ] ; then
-		MB_GREEN="--green ${MB_GREEN}"
-	fi
-
-	echo "What shall be the blue value of the mandelbrot set (default: 0)? "
-	read MB_BLUE
-	if [ ! "${MB_BLUE}" == "" ] ; then
-		MB_BLUE="--blue ${MB_BLUE}"
-	fi
-
-	echo "What shall be the background red value (default: 0)? "
-	read MB_REDBG
-	if [ ! "${MB_REDBG}" == "" ] ; then
-		MB_REDBG="--redBg ${MB_REDBG}"
-	fi
-
-	echo "What shall be the background green value (default: 0)? "
-	read MB_GREENBG
-	if [ ! "${MB_GREENBG}" == "" ] ; then
-		MB_GREENBG="--greenBg ${MB_GREENBG}"
-	fi
-
-	echo "What shall be the background blue value (default: 0)? "
-	read MB_BLUEBG
-	if [ ! "${MB_BLUEBG}" == "" ] ; then
-		MB_BLUEBG="--blueBg ${MB_BLUEBG}"
-	fi
-
-	echo "What shall be the maximal real value (default: 1.0)? "
-	read MB_REMAX
-	if [ ! "${MB_REMAX}" == "" ] ; then
-		MB_REMAX="--remax ${MB_REMAX}"
-	fi
-
-	echo "What shall be the minimal real value (default: -2.0)? "
-	read MB_REMIN
-	if [ ! "${MB_REMIN}" == "" ] ; then
-		MB_REMIN="--remin ${MB_REMIN}"
-	fi
-
-	echo "What shall be the minimal imaginary value (default: -1.2)? "
-	read MB_IMMIN
-	if [ ! "${MB_IMMIN}" == "" ] ; then
-		MB_IMMIN="--immin ${MB_IMMIN}"
-	fi
-
-	echo -e "\n3. submit your job or save the job file\n"
-	MB_ARGS="${MB_FILENAME} ${MB_WIDTH} ${MB_HEIGHT} ${MB_ITERATIONS} ${MB_SLICES}"
-	MB_ARGS="${MB_ARGS} ${MB_RED} ${MB_GREEN} ${MB_BLUE} ${MB_REDBG} ${MB_GREENBG} ${MB_BLUEBG}"
-	MB_ARGS="${MB_ARGS} ${MB_REMAX} ${MB_REMIN} ${MB_IMMIN}"
 
 	PBS_CONFIG="${PBS_NAME}\n#PBS -j oe\n#PBS -r n\n${PBS_MAIL}\n${PBS_WALLTIME}\n"
 	PBS_CONFIG="${PBS_CONFIG}${PBS_NODES}${PBS_PPN}\n${MPI_PATH} ${MPI_NODES} -machinefile \$PBS_NODEFILE `pwd`/${BINARY}"
 	JOB="#!/bin/bash\n${PBS_CONFIG} ${MB_ARGS}"
-
+	
+	echo -e "\n3. submit your job or save the job file"
 	outputJob "$JOB"
 	
 }
