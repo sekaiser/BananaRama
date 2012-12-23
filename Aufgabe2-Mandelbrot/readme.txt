@@ -26,6 +26,10 @@ running the program
 
 running the program on the cluster
 	Before running the cluser dialog make sure to compile the program!
+	
+	ATTENTION:
+	You may start the clusterDialog.sh script only from within the projects top
+	directory!
 
 	To run the program on the cluster you will either need a pbs file or use the
 	clusterDialog.sh bash script, which will help you configure and run the 
