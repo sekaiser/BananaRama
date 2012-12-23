@@ -174,7 +174,11 @@ FILE* getBmpFileHandler(const char* filename) {
 }
 
 /*
-	\brief
+	\brief writes a bitmap file
+	\param iImageWidth is the value of the image width
+	\param iImageHeight is the value of the image height
+	\param FileName is the name of the target file
+	\param pImage is the buffered image
 */
 void writeBmp(int* iImageWidth, int* iImageHeight, const char* FileName, const Tuchar* pImage) {
 
@@ -206,7 +210,15 @@ void writeBmp(int* iImageWidth, int* iImageHeight, const char* FileName, const T
 }
 
 /*
-	\brief
+	\brief iterates over a point and stores its color value in the output buffer
+	\param image is the image configuration
+	\param x is the x coordinate of the point
+	\param y is the y coordinate of the point
+	\param dZre copy of dCre
+	\param dZim copy of dCim
+	\param dCre computed: ReMin + x * ReFactor
+	\param dCim computed: ImMax - y * ImFactor 
+	\param img is the output buffer
 */
 void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, double* dZim, double* dCre, 
 			   double* dCim, Tuchar* img) {
@@ -226,13 +238,18 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 		*dZim = 2 * (*dZre) * (*dZim) + (*dCim);
 		*dZre = dZre2 - dZim2 + (*dCre);
 	}
+
 	/* set the color config */
 	iPosition = (*x + *y * image->iWidth) * 3;	
-	if(bIsInside==1) { 
+	if(bIsInside==1) {
+
+		/* set the background color */
 		img[iPosition] 	 = (Tuchar)(image->iBlueBg);
 		img[++iPosition] = (Tuchar)(image->iGreenBg);
 		img[++iPosition] = (Tuchar)(image->iRedBg);
 	} else {
+
+		/* set the foreground color */
 		dColor = dColor / image->uiMaxIterations;
 		img[iPosition]   = (Tuchar) (dColor * image->iBlue);
 		img[++iPosition] = (Tuchar) (dColor * image->iGreen);
@@ -241,7 +258,10 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 }
 
 /*
-	\brief
+	\brief computes a slice and its coloration
+	\param image is the image configuration
+	\param mySlice is the slice definition
+	\param img is the output buffer
 */
 void computeSlice(TImageConfig* image, TSlice* mySlice, Tuchar* img) {
 
@@ -260,7 +280,10 @@ void computeSlice(TImageConfig* image, TSlice* mySlice, Tuchar* img) {
 }
 
 /*
-	\brief
+	\brief initializes the measures of all slices
+	\param iHeight is the height of the picture
+	\param iWidth is the width of the picture
+	\param sliceDimensions is a cache which will hold all slice dimensions
 */
 void initializeSlices(int* iHeight, int* iSlices, TSlice* sliceDimensions) {
 
@@ -283,7 +306,11 @@ void initializeSlices(int* iHeight, int* iSlices, TSlice* sliceDimensions) {
 }
 
 /*
-	\brief
+	\brief defines how the slave receive their slices and what they to with them
+	\param rank is the rank of the slave
+	\param image is the image configuration
+	\param sliceDimensions is a precomputed cache with the dimensions of all slices
+	\param buffer is the output buffer
 */
 #ifdef __mandelbrot__debug__
 void slaveReceiveSlices(int* rank, TImageConfig* image, TSlice* sliceDimensions, Tuchar* buffer) {
@@ -294,6 +321,7 @@ void slaveReceiveSlices(TImageConfig* image, TSlice* sliceDimensions, Tuchar* bu
 	int iSlice;
 	MPI_Status status;
 
+	/* wait for input */
 	for (;;) {
 		/* receive a new slice to calculate */
 		MPI_Recv(&iSlice, 1, MPI_INT, 0, 325, MPI_COMM_WORLD, &status);
