@@ -11,6 +11,7 @@
 #include <mpi.h>
 #include <getopt.h>
 
+/* enable to activate some debugging output */
 /* #define __mandelbrot__debug__ */
 
 /*
@@ -22,36 +23,38 @@ typedef unsigned char Tuchar;
 	\brief defines a slice
 */
 typedef struct {
-	int 	start,	///< the start height of the slice
-		end;	///< the end height of the slice
+	int 	start,	/* the start height of the slice */
+		end;	/* the end height of the slice */
 } TSlice;
 
 /* 
 	\brief defines the configuration
 */
 typedef struct {
-	int 	iWidth, 		///< image width
-		iHeight, 		///< image height
-		iSlices,		///< number of slices the image will be splitted to
-		iRed,			///< red value of the mandelbrot set
-		iGreen,			///< green value of the mandelbrot set
-		iBlue, 			///< blue value of the mandelbrot set
-		iRedBg,			///< background red value
-		iGreenBg,		///< background green value
-		iBlueBg;		///< background blue value
-	unsigned int uiMaxIterations;	///< maximal number of iterations per point
-	double 	dImMin,			///< minimal imaginary value
-		dImMax,			///< maximal imaginary value
-		dReMin,			///< minimal real value
-		dReMax,			///< maximal real value
-		dReFactor,		///< real factor
-		dImFactor;		///< imaginary factor
-	char* 	FileName;		///< name of the output file
+	int 	iWidth,			/* image width */
+		iHeight, 		/* image height */
+		iSlices,		/* number of slices the image will be splitted to */
+		iRed,			/* red value of the mandelbrot set */
+		iGreen,			/* green value of the mandelbrot set */
+		iBlue, 			/* blue value of the mandelbrot set */
+		iRedBg,			/* background red value */
+		iGreenBg,		/* background green value */
+		iBlueBg;		/* background blue value */ 
+	unsigned int uiMaxIterations;	/* maximal number of iterations per point */
+	double 	dImMin,			/* minimal imaginary value */
+		dImMax,			/* maximal imaginary value */
+		dReMin,			/* minimal real value */ 
+		dReMax,			/* maximal real value */
+		dReFactor,		/* real factor */
+		dImFactor;		/* imaginary factor */
+	char* 	FileName;		/* name of the output file */
 } TImageConfig;
 
 /*
 	\brief allocates new Tuchar memory
+
 	\param size is the amount of memory
+
 	\return a pointer to the new memory
 */
 Tuchar* allocateTucharP(int* size) {
@@ -72,7 +75,11 @@ Tuchar* allocateTucharP(int* size) {
 }
 
 /*
-	\brief
+	\brief allocates new char memory
+
+	\param size is the amount of memory
+
+	\return a pointer to the new memory
 */
 char* allocateCharP(int* size) {
 
@@ -93,7 +100,9 @@ char* allocateCharP(int* size) {
 
 /*
 	\brief generates a bitmap file header
+
 	\param filesize is the size of the target file
+
 	\return a pointer to the new bitmap file header
 */
 Tuchar* getBmpFileHeader(int* filesize) {
@@ -123,8 +132,10 @@ Tuchar* getBmpFileHeader(int* filesize) {
 
 /*
 	\brief generates a bitmap info header
+
 	\param iImageWidth is the value of the picture width
 	\param iImageHeight is the value of the picture height
+
 	\return a pointer to the new bitmap info header
 */
 Tuchar* getBmpInfoHeader(int* iImageWidth, int* iImageHeight) {
@@ -156,7 +167,9 @@ Tuchar* getBmpInfoHeader(int* iImageWidth, int* iImageHeight) {
 
 /*
 	\brief opens a file handler on an existing or new file
+
 	\param filename is the name of the target file
+
 	\return a pointer to the file handler
 */
 FILE* getBmpFileHandler(const char* filename) {
@@ -175,6 +188,7 @@ FILE* getBmpFileHandler(const char* filename) {
 
 /*
 	\brief writes a bitmap file
+
 	\param iImageWidth is the value of the image width
 	\param iImageHeight is the value of the image height
 	\param FileName is the name of the target file
@@ -211,6 +225,7 @@ void writeBmp(int* iImageWidth, int* iImageHeight, const char* FileName, const T
 
 /*
 	\brief iterates over a point and stores its color value in the output buffer
+
 	\param image is the image configuration
 	\param x is the x coordinate of the point
 	\param y is the y coordinate of the point
@@ -259,6 +274,7 @@ void iterateAndStoreAPoint(TImageConfig* image, int* x, int* y, double* dZre, do
 
 /*
 	\brief computes a slice and its coloration
+
 	\param image is the image configuration
 	\param mySlice is the slice definition
 	\param img is the output buffer
@@ -281,6 +297,7 @@ void computeSlice(TImageConfig* image, TSlice* mySlice, Tuchar* img) {
 
 /*
 	\brief initializes the measures of all slices
+
 	\param iHeight is the height of the picture
 	\param iWidth is the width of the picture
 	\param sliceDimensions is a cache which will hold all slice dimensions
@@ -307,6 +324,7 @@ void initializeSlices(int* iHeight, int* iSlices, TSlice* sliceDimensions) {
 
 /*
 	\brief defines how the slave receive their slices and what they to with them
+
 	\param rank is the rank of the slave
 	\param image is the image configuration
 	\param sliceDimensions is a precomputed cache with the dimensions of all slices
@@ -346,7 +364,9 @@ void slaveReceiveSlices(TImageConfig* image, TSlice* sliceDimensions, Tuchar* bu
 }
 
 /*
-	\brief
+	\brief defines how the slaves receive a configuration
+
+	\param config is the configuration cache on slave side
 */
 void slaveReceiveConfig(TImageConfig* config) {
 	
@@ -386,7 +406,9 @@ void slaveReceiveConfig(TImageConfig* config) {
 }
 
 /*
-	\brief
+	\brief defines the behaviour of a slave
+
+	\param rank is the slaves rank value
 */
 #ifdef __mandelbrot__debug__
 void slave(int* rank) {
@@ -416,7 +438,10 @@ void slave() {
 }
 
 /*
-	\brief
+	\brief defines how the master spreads the configuration
+
+	\param iSize is the number of slaves
+	\param image is the masters image configuration
 */
 void configureProcesses(int* iSize, TImageConfig* image) {
 
@@ -458,7 +483,13 @@ void configureProcesses(int* iSize, TImageConfig* image) {
 }
 
 /*
-	\brief
+	\brief defines how the master sends the frist slices to the slaves
+
+	\param iSize is the number of slaves
+	\param iSlices is the count of all slices
+	\param iSliceCache is a cache where the master stores the current slice per slave
+
+	\return the number of the next slice to be computed
 */
 int initializeProcesses(int* iSize, int* iSlices, int* iSliceCache) {
 
@@ -470,9 +501,11 @@ int initializeProcesses(int* iSize, int* iSlices, int* iSliceCache) {
 			printf("Sending slice '%d' to process '%d'\n", iSlice, iProcess);
 			#endif
 			MPI_Ssend(&iSlice, 1, MPI_INT, iProcess, 325, MPI_COMM_WORLD);
+			/* cache the slice number for receiving the results later on */
 			iSliceCache[iProcess] = iSlice;
 			iSlice++;
 		} else {
+			/* if there are no slices left, send the kill signal */
 			int kill = -1;
 			MPI_Ssend(&kill, 1, MPI_INT, iProcess, 325, MPI_COMM_WORLD);
 		}
@@ -481,7 +514,14 @@ int initializeProcesses(int* iSize, int* iSlices, int* iSliceCache) {
 }
 
 /*
-	\brief
+	\brief defines how the master processes the slices
+
+	\param image is the picture configuration
+	\param iSlice is the value of the next slice to be computed
+	\param sliceDimensions is a cache which holds the precomputed slice dimensions
+	\param iSliceCache is a cache which holds the number of the slice a slave computes at the moment
+	\param buffer is a pre-allocated transport buffer (note: you can optimize here)
+	\param out is the output buffer
 */
 void processSlices(TImageConfig* image, int* iSlice, TSlice* sliceDimensions, 
 			int* iSliceCache, Tuchar* buffer, Tuchar* out) {
@@ -525,7 +565,10 @@ void processSlices(TImageConfig* image, int* iSlice, TSlice* sliceDimensions,
 }
 
 /*
-	\brief
+	\brief defines the masters behaviour
+
+	\param iSzie is the number of slaves
+	\param image is the image configuration
 */
 void master(int* iSize, TImageConfig* image) {
 	
@@ -560,12 +603,14 @@ void master(int* iSize, TImageConfig* image) {
 }
 
 /*
-	\brief
+	\brief initializes a default configuration
+
+	\param image will hold the configuration
 */
 void initializeConfig(TImageConfig* image) {
 
-	image->iWidth = 1200;
-	image->iHeight = 900;
+	image->iWidth = 800;
+	image->iHeight = 600;
 	image->uiMaxIterations = 120;
 	image->iSlices = 11;
 	image->dReMin = -2.0;
@@ -582,7 +627,9 @@ void initializeConfig(TImageConfig* image) {
 }
 
 /*
-	\brief
+	\brief finalizes a configuration (read: auto completes it)
+
+	\param image holds the configuration
 */
 void finalizeConfig(TImageConfig* image) {
 
@@ -594,7 +641,9 @@ void finalizeConfig(TImageConfig* image) {
 }
 
 /*
-	\brief
+	\brief sets the best picture configuration
+	
+	\param config is the image configuration
 */
 void bestpictureConfig(TImageConfig* config) {
 
@@ -612,15 +661,19 @@ void bestpictureConfig(TImageConfig* config) {
 }
 
 /*
-	\brief
+	\brief runs the dialog
+	
+	\param config is the image configuration, which may be updated here
 */
 void dialog(TImageConfig* config) {
 
+	/* print the dialog header */
 	printf(	"mandelbrot generator in mpi-conform C\n"
 	       	"(c) 2012 R. Fruth, S. Kaiser & E. Kuhnt\n\n"
 		"configuration dialog\n\n"
 	);
 
+	/* run a basic dialog */
 	int iReturn;
 	do {
 		printf("Please specify the picture width (current: %d):\n", config->iWidth);
@@ -685,7 +738,7 @@ void dialog(TImageConfig* config) {
 }
 
 /*
-	\brief
+	\brief displays the usage information
 */
 void printUsageInformation() {
 
@@ -719,17 +772,26 @@ void printUsageInformation() {
 }
 
 /*
-	\brief
+	\brief checks if an integer representing a parameter is <0; will exit in the case of an error
+	
+	\param iInteger is the integer to check
+	\param cLParam is the long parameter
+	\param cSParam is the short parameter
 */
 void underflowCheckInteger(int* iInteger, char* cLParam, char* cSParam){
 	if(*iInteger < 0) {
+		/* error-exit on underflow */
 		fprintf(stderr, "ERROR: You may not set a negative value for %s / %s !\n", cLParam, cSParam);
 		exit(1);
 	}
 }
 
 /*
-	\brief
+	\brief parses the command line parameters and stores the config
+	
+	\param argc is the argument count
+	\param argv is a vector which the command line arguments
+	\param config will hold the image configuration
 */
 void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 
@@ -852,7 +914,7 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 	/* using the dialog
 	   note: if we have set the bestpic before (e.g. the user sets both flags),
 		 the dialog defaults will show the bestpic configuration
-		 this enables us to work-around an error message if both flags are 
+		 this enables us to circumvent an error message if both flags are 
 		 set
 	 */
 	if(bDialogFlag == 1){
@@ -861,7 +923,10 @@ void parseCommandLineParameters(int argc, char** argv, TImageConfig* config) {
 }
 
 /*
-	\brief
+	\brief the main routine
+	
+	\param argc is the argument count
+	\param argv is a vector which holds the command line arguments
 */
 int main(int argc, char **argv) {
 
