@@ -16,6 +16,25 @@ function checkBinary {
 	fi
 }
 
+# submit or output a job
+function outputJob {
+
+	echo "Do you want to submit your job (type: 0) or save it to a file (type: 1)?"
+	read YESNO
+	if [ "${YESNO}" == "0" ] ; then
+		echo "submitting your job..."
+		echo -e "${1}" | qsub
+	elif [ "${YESNO}" == "1" ] ; then
+		echo "saving your job to file..."
+		echo -e "${1}" > ${JOBFILE}
+	else
+		echo "Oooops I did not understand you. But I assume you want to submit your job!"
+		echo "submitting your job..."
+		echo -e "${1}" | qsub
+	fi
+
+}
+
 # prints the dialog header
 function printDialogHeader {
 
@@ -194,12 +213,15 @@ function main {
 
 
 
-	echo -e "\n3. submit your job or save the job file"
+	echo -e "\n3. submit your job or save the job file\n"
 	MB_ARGS=""
 
 	PBS_CONFIG="${PBS_NAME}\n#PBS -j oe\n#PBS -r n\n${PBS_MAIL}\n${PBS_WALLTIME}\n"
 	PBS_CONFIG="${PBS_CONFIG}${PBS_NODES}${PBS_PPN}\n${MPI_PATH} ${MPI_NODES} -machinefile \$PBS_NODEFILE `pwd`/${BINARY}"
-	echo -e "#!/bin/bash\n${PBS_CONFIG} ${MB_ARGS}"
+	JOB="#!/bin/bash\n${PBS_CONFIG} ${MB_ARGS}"
+
+	outputJob "$JOB"
+	
 }
 
 main "$@"
