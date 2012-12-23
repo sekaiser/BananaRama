@@ -224,8 +224,9 @@ function main {
 		MB_ARGS="${MB_ARGS} ${MB_REMAX} ${MB_REMIN} ${MB_IMMIN}"
 	fi
 
-	PBS_CONFIG="${PBS_NAME}\n#PBS -j oe\n#PBS -r n\n${PBS_MAIL}\n${PBS_WALLTIME}\n"
-	PBS_CONFIG="${PBS_CONFIG}${PBS_NODES}${PBS_PPN}\n${MPI_PATH} ${MPI_NODES} -machinefile \$PBS_NODEFILE `pwd`/${BINARY}"
+	PBS_CONFIG="${PBS_NAME}\n#PBS -j oe\n#PBS -r n\n${PBS_MAIL}\n${PBS_WALLTIME}"
+	PBS_CONFIG="${PBS_CONFIG}\n${PBS_NODES}${PBS_PPN}\ncd \$PBS_O_WORKDIR"
+	PBS_CONFIG="${PBS_CONFIG}\n${MPI_PATH} ${MPI_NODES} -machinefile \$PBS_NODEFILE `pwd`/${BINARY}"
 	JOB="#!/bin/bash\n${PBS_CONFIG} ${MB_ARGS}"
 	
 	echo -e "\n3. submit your job or save the job file"
